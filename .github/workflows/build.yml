@@ -1,0 +1,27 @@
+name: Build macOS app
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test layout and stack behavior
+        run: swift run TileCoreChecks
+      - name: Build universal app
+        run: scripts/build.sh
+      - name: Package
+        run: scripts/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ShawnTile-universal
+          path: |
+            dist/*.zip
+            dist/*.dmg
+            dist/SHA256SUMS
