@@ -31,7 +31,7 @@ The initial XCTest route could not run because this Command Line Tools installat
 - Ad hoc signature verified; Developer ID signing/notarization was not performed. Gatekeeper acceptance on the other Mac remains a user-side install step.
 - Apps can reject small sizes. Fixed split geometry reports constraints; it does not negotiate learned minimum sizes. Dialog/panel filtering follows AX subroles and public current-screen metadata.
 - Public reference demo behavior is distinct from native Shoji; no full parity claim.
-- GitHub CI and release publication status are recorded below after push; local passing checks do not claim remote CI success.
+- GitHub Actions independently passed on macOS 15: layout/state checks, universal build, package, and artifact upload. Run: https://github.com/swright7001/shawn-tile/actions/runs/40246784375 (source b904402fcac33e4129355467a799014156f2d03f). This still does not test physical Intel hardware or app permissions on another Mac.
 
 ## Reproduce
 
@@ -46,3 +46,7 @@ swift run TileCoreChecks
 ```
 
 Quit an installed copy before the smoke run so it does not occupy this app's global shortcuts. The real AX test requires Accessibility for its launch context; it reports SKIP otherwise. It never enables automation for ordinary apps. Installer: `scripts/install.sh`; second Mac: use the release DMG and docs/INSTALL.txt.
+
+## Delivery
+
+Private repository: https://github.com/swright7001/shawn-tile. Source tag v0.1.0 and published release: https://github.com/swright7001/shawn-tile/releases/tag/v0.1.0. DMG, ZIP and SHA256SUMS uploaded successfully; GitHub asset SHA-256 digests match the locally verified archives. Installed final app at `~/Applications/Shawn Tile.app`; native setup UI visibly shows the permission requirement and automatic tiling off. No OS permission was granted automatically.
