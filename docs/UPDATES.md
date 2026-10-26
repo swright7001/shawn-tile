@@ -1,6 +1,6 @@
 # Updates and release notes
 
-Install 0.4.2 once if you are using an older version. Then use Check for Updates
+Install 0.4.3 once if you are using an older version. Then use Check for Updates
 in Shawn Tile's menu or General settings. Automatic checks run daily and can be
 turned off. A newer stable release shows a banner, feature summary and full notes.
 Update & Restart starts the download and installation. It never installs in the

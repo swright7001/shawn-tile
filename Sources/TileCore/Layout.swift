@@ -70,6 +70,7 @@ public enum Geometry {
 public struct TileState: Equatable {
     public private(set) var tiles: [[String]] = []
     public init() {}
+    init(groups: [[String]]) { tiles = groups }
     public mutating func reconcile(windows: [String], capacity: Int, focused: String?) {
         let limit = max(1, min(4, capacity))
         let visible = Set(windows)

@@ -72,9 +72,57 @@ public enum AdaptiveLayout {
                     }
                 }
             }
+            // A smaller layout may have merged incompatible windows into one
+            // stack. Try regrouping before deciding fewer tiles are necessary.
+            // Preserve existing stacks whenever either previous pass fits.
+            for layout in layouts {
+                guard count > 1, let arranged = regroup(windows:fitWindows,state:candidate,minimums:minimums,count:count,area:area,layout:layout) else { continue }
+                let required = needs(arranged)
+                var low = 0, high = Int(floor(gap))
+                while low < high {
+                    let middle = (low+high+1)/2, g = CGFloat(middle)
+                    if fit(box:area.insetBy(dx:g,dy:g),needs:required,gap:g,layout:layout) != nil { low = middle }
+                    else { high = middle-1 }
+                }
+                let g = CGFloat(low)
+                if let frames = fit(box:area.insetBy(dx:g,dy:g),needs:required,gap:g,layout:layout) {
+                    return FittedLayout(state:arranged,frames:frames,layout:layout,floating:floating)
+                }
+            }
         }
         // Every remaining window individually fits the full usable screen, so one stack must fit.
         return FittedLayout(state: TileState(), frames: [], layout: preferred, floating: windows)
+    }
+
+    private static func regroup(windows:[String], state:TileState, minimums:[String:CGSize], count:Int, area:CGRect, layout:Layout) -> TileState? {
+        guard windows.count <= 128, let primary = state.tiles.first?.first else { return nil }
+        // Work is bounded even for many windows. Harder constraints are placed
+        // first; the primary window remains in slot zero.
+        let ordered = windows.enumerated().filter { $0.element != primary }.sorted { a,b in
+            let x = minimums[a.element] ?? .zero, y = minimums[b.element] ?? .zero
+            let sx = x.width/area.width+x.height/area.height, sy = y.width/area.width+y.height/area.height
+            return sx == sy ? a.offset < b.offset : sx > sy
+        }.map(\.element)
+        var groups = Array(repeating:[String](),count:count), required = Array(repeating:CGSize.zero,count:count)
+        groups[0] = [primary]; required[0] = minimums[primary] ?? .zero
+        var budget = 8192
+        func search(_ index:Int) -> Bool {
+            budget -= 1
+            guard budget >= 0, groups.filter({$0.isEmpty}).count <= ordered.count-index else { return false }
+            if index == ordered.count { return true }
+            let id = ordered[index], size = minimums[id] ?? .zero
+            let preferred = state.slot(of:id) ?? 0
+            for slot in [preferred] + (0..<count).filter({$0 != preferred}) {
+                let previous = required[slot]
+                groups[slot].append(id)
+                required[slot] = CGSize(width:max(previous.width,size.width),height:max(previous.height,size.height))
+                if fit(box:area,needs:required,gap:0,layout:layout) != nil && search(index+1) { return true }
+                required[slot] = previous; groups[slot].removeLast()
+                if budget < 0 { break }
+            }
+            return false
+        }
+        return search(0) ? TileState(groups:groups) : nil
     }
 
     /// Equal shares unless a minimum needs more room. Spare space goes to smaller shares first.

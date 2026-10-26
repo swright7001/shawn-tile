@@ -43,6 +43,16 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
                     case "fullHeight":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
                         for window in self.windows where window.isVisible { window.minSize = NSSize(width:100,height:area.height) }
+                    case "regroup":
+                        for window in self.windows { window.close() }
+                        self.windows = []
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
+                        let ratios:[(CGFloat,CGFloat)] = [(0.6,0.38),(0.16,0.15),(0.35,0.38),(0.35,0.38),(0.35,0.65),(0.16,0.65)]
+                        for (index,ratio) in ratios.enumerated() {
+                            let window = NSWindow(contentRect:NSRect(x:100+index*20,y:100,width:400,height:300),styleMask:[.titled,.closable,.resizable,.miniaturizable],backing:.buffered,defer:false)
+                            window.title = "Shawn Tile regrouping \(index+1)"; window.minSize = NSSize(width:area.width*ratio.0,height:area.height*ratio.1); window.isReleasedWhenClosed = false
+                            window.makeKeyAndOrderFront(nil); self.windows.append(window)
+                        }
                     case "replace":
                         for window in self.windows { window.close() }
                         self.windows = []

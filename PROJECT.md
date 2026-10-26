@@ -187,3 +187,17 @@ local signing workflow. No additional reference-product research was needed.
 Run pure checks, real-window layout and shortcut fixtures, disposable installer
 success/rollback checks, native UI checks and a real public-release update before
 claiming completion. Record observed results in VERIFICATION.md.
+
+Delivered stable 0.4.2 with explicit layout shapes, Auto mode, Grid rebalancing,
+release banners, feature notes and reviewed Update & Restart installation.
+Verified pure behavior, real disposable windows, shortcut handlers and installer
+rollback/cancellation. A real public-release update on the Mini completed through
+the app, preserved its local signing identity and Accessibility grant, and kept
+saved preferences. The initial pilot exposed a notes-sheet restart failure;
+0.4.1 was withdrawn as latest and a blocked-sheet regression check now covers
+the fix. Release provenance and remaining device-test gaps are in VERIFICATION.md.
+
+A final desktop transition check exposed incompatible merged stacks after Rows.
+Added bounded regrouping with primary preservation and six-window pure/native
+regressions, and prepared the 0.4.3 follow-up. Final delivery is recorded in
+VERIFICATION.md.

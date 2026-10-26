@@ -61,6 +61,18 @@ func runLayoutModeChecks() {
         add("Grid recovers four tiles after replacement",2.1,{
             m.update(display.id) { $0.layout = .grid }; m.tidy()
         },{m.windows.count == 4 && m.effectiveTiles[display.id] == 4 && m.effectiveLayouts[display.id] == .grid})
+        add("replace with six windows of different minimum sizes",1,{
+            try? pipe.fileHandleForWriting.write(contentsOf:Data("regroup\n".utf8))
+        },{m.windows.count == 6})
+        for mode in [Layout.grid,.rows,.grid,.rows,.grid] {
+            add("six-window \(mode.rawValue) regroups after layout switches",2.1,{
+                m.update(display.id) { $0.layout = mode }
+            },{
+                let actual = m.windows.compactMap{axFrame($0.element)}
+                return m.effectiveLayouts[display.id] == mode && m.effectiveTiles[display.id] == (mode == .grid ? 4 : 2) &&
+                    actual.count == 6 && actual.allSatisfy{display.area.insetBy(dx:-3,dy:-3).contains($0)}
+            })
+        }
         var index = 0
         func next() {
             guard index < steps.count else { finish(); return }

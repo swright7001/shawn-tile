@@ -2,9 +2,9 @@
 set -euo pipefail
 TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
-TILE_VERSION="${TILE_VERSION:-0.4.2}"
+TILE_VERSION="${TILE_VERSION:-0.4.3}"
 TILE_ARCH="${1:-universal}"
-TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-5}"
+TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-6}"
 TILE_APP="$TILE_ROOT/dist/Shawn Tile.app"
 mkdir -p "$TILE_APP/Contents/MacOS" "$TILE_APP/Contents/Resources"
 if [[ "$TILE_ARCH" == universal ]]; then

@@ -105,4 +105,28 @@ func runExplicitLayoutChecks() {
     }
     let legacy = try! JSONDecoder().decode(DisplaySettings.self,from:Data(#"{"layout":"rows","capacity":4,"gap":10,"autoFit":true}"#.utf8))
     XCTAssertEqual(legacy.layout,.rows)
+
+    // A collapsed Rows layout can combine incompatible Grid members. Whole
+    // stack permutations alone cannot recover four tiles for these six windows.
+    let ids = ["a","b","c","d","e","f"]
+    let sizes = [CGSize(width:750,height:350),CGSize(width:200,height:150),CGSize(width:450,height:350),CGSize(width:450,height:350),CGSize(width:450,height:600),CGSize(width:200,height:600)]
+    let mins = Dictionary(uniqueKeysWithValues:zip(ids,sizes))
+    let box = CGRect(x:0,y:0,width:1200,height:900)
+    var current = TileState()
+    for mode in [Layout.grid,.rows,.grid,.rows,.grid] {
+        let plan = AdaptiveLayout.plan(in:box,windows:ids,state:current,minimums:mins,settings:.init(layout:mode,capacity:4,gap:10),focused:nil)
+        XCTAssertEqual(plan.layout,mode)
+        XCTAssertEqual(plan.state.tiles.count,mode == .grid ? 4 : 2)
+        XCTAssertEqual(plan.state.tiles[0].first,"a")
+        XCTAssertEqual(plan.state.tiles.flatMap{$0}.count,6)
+        XCTAssertEqual(Set(plan.state.tiles.flatMap{$0}),Set(ids))
+        for (slot,members) in plan.state.tiles.enumerated() {
+            XCTAssertTrue(box.contains(plan.frames[slot]))
+            for id in members {
+                XCTAssertTrue(plan.frames[slot].width+0.01 >= mins[id]!.width)
+                XCTAssertTrue(plan.frames[slot].height+0.01 >= mins[id]!.height)
+            }
+        }
+        current = plan.state
+    }
 }

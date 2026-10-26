@@ -318,3 +318,49 @@ after the user has chosen Update & Restart. The native smoke check deliberately
 holds the notes sheet active: it passed menu/hotkey checks and exited normally in
 3.9 seconds. Final 0.4.2 packages built for both architectures and repeated all
 23 installer checks successfully. Real public-release retry is recorded below.
+
+Final source `89ed389929c725755ec089805ff7a50eb40a0c2e` passed independent
+CI, including tests, universal build, packaging and the installer fixture:
+https://github.com/swright7001/shawn-tile/actions/runs/40261724686.
+Published stable v0.4.2 with universal DMG, ZIP and SHA256SUMS. Unauthenticated
+GitHub latest-release metadata confirmed v0.4.2, three assets, and all three
+SHA-256 digests matching the local files:
+https://github.com/swright7001/shawn-tile/releases/tag/v0.4.2.
+
+Executed the real in-app update from the patched, locally signed 0.4.0 pilot.
+Check for Updates offered the public 0.4.2 release and its actual feature notes.
+Update & Restart downloaded the public ZIP, verified and locally signed it,
+exited the running app, replaced it and reopened settings. The installer log
+reported success and retention of the previous version as a backup. The installed
+Info.plist is version 0.4.2, build 5. Strict signing-continuity checks passed
+against the pre-update snapshot with the same certificate-pinned requirement.
+
+The restarted native UI showed the successful-update banner, Automatic tiling
+enabled and no Accessibility warning. Saved Grid, maximum four tiles, 10-point
+spacing and automatic fitting survived. The Keyboard tab retained all saved
+bindings, including Control-Shift-Command-P and the custom Command-arrow swaps,
+and reported successful macOS registration. Rows visibly used two horizontal
+tiles with the current apps' size constraints. Grid was restored after this
+check. No permission reset or signing approval was needed during the real update.
+Physical remote keystrokes were not repeated in this release check; prior user
+confirmation and the keyboard fixture results remain the delivery evidence.
+
+
+### 0.4.3: recovering compatible stacks after Rows
+
+The final 0.4.2 desktop check exposed a remaining case: after Rows collapsed six
+windows into two stacks, Grid could stay at two tiles even though four had fit
+before. Retrying measurements did not restore the count. Whole-stack permutations
+cannot separate incompatible members created by collapse.
+
+The planner now retains existing stacks first, then tries bounded regrouping
+before lowering count. The primary window stays in slot zero. Added a six-window
+minimum-size regression covering Grid, Rows and repeated recovery, bounds,
+complete membership and minimum sizes. Pure checks passed **3,966 assertions**.
+The expanded native suite passed **21 layout-mode checks, zero failures** against
+fixture PID 50830, including repeated six-window Grid/Rows transitions. Ordinary
+desktop tiling was paused during the fixture run. Both architectures built and
+the candidate retained the configured local signing requirement.
+
+The existing real-window regression suite also passed **18 checks, zero failures**
+against fixture PID 50879 after regrouping was added.

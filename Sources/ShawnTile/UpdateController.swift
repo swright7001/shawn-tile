@@ -61,7 +61,7 @@ private final class ReleaseRequest: NSObject, URLSessionDataDelegate {
 }
 
 @MainActor final class UpdateController: ObservableObject {
-    nonisolated static var currentVersion:String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.4.2" }
+    nonisolated static var currentVersion:String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.4.3" }
     @Published var available:ReleaseUpdate?
     @Published var checking = false
     @Published var installing = false
