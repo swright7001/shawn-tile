@@ -166,3 +166,9 @@ window effects, persistence and conflict rollback. No additional reference-produ
 research or proprietary material is required. Native keypress delivery is a
 separate check from posting Carbon handler events. Record actual results and
 remaining limits in VERIFICATION.md.
+
+Delivered 0.3.0 with editable persistent shortcuts, conflict rollback, optional
+Screen Sharing preset, and stable Focus during geometry changes. Verified a
+physical remote Pause shortcut, all 15 action handlers and saved custom bindings;
+installed with the existing local identity and published the universal release.
+Executed counts, CI and release provenance are recorded in VERIFICATION.md.

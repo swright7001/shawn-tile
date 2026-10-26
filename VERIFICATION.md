@@ -253,3 +253,12 @@ The native relaunched app preserved the saved custom Pause binding and its
 Accessibility grant. Applied Screen Sharing preset in Keyboard settings: all
 15 rows changed to Control-Shift-Command, registration remained successful,
 and Automatic tiling was enabled again.
+
+Delivery: independent CI passed tests, universal build, packaging and artifact
+upload for source 72e4273:
+https://github.com/swright7001/shawn-tile/actions/runs/40256461800.
+The local extracted public ZIP passed strict signature, version 0.3.0, ad hoc
+signing and both-architecture checks. DMG/ZIP SHA-256 checks passed. Published
+v0.3.0 with the DMG, ZIP and SHA256SUMS; unauthenticated GitHub release metadata
+confirmed all three assets and SHA-256 digests matching the local packages:
+https://github.com/swright7001/shawn-tile/releases/tag/v0.3.0.
