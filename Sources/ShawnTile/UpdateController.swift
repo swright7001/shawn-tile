@@ -61,7 +61,7 @@ private final class ReleaseRequest: NSObject, URLSessionDataDelegate {
 }
 
 @MainActor final class UpdateController: ObservableObject {
-    nonisolated static var currentVersion:String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.4.1" }
+    nonisolated static var currentVersion:String { Bundle.main.object(forInfoDictionaryKey:"CFBundleShortVersionString") as? String ?? "0.4.2" }
     @Published var available:ReleaseUpdate?
     @Published var checking = false
     @Published var installing = false
@@ -71,6 +71,7 @@ private final class ReleaseRequest: NSObject, URLSessionDataDelegate {
     @Published var automatic:Bool { didSet { preferences.set(automatic,forKey:"updates.automatic"); if automatic { check() } } }
     var canInstall:Bool { !preview && available != nil && !checking && !installing }
     var changed:(()->Void)?
+    var finishInstallation:(()->Void)?
     private let preferences:UserDefaults
     private let preview:Bool
     private var work:Task<Void,Never>?
@@ -149,7 +150,12 @@ private final class ReleaseRequest: NSObject, URLSessionDataDelegate {
                     let output = try FileHandle(forWritingTo:log); task.standardOutput = output; task.standardError = output
                     try task.run(); try? output.close()
                     preferences.set(selected.version,forKey:"updates.pendingVersion"); preferences.set(selected.notes,forKey:"updates.pendingNotes")
-                    status = "Restarting to finish the update…"; handedOff = true; NSApp.terminate(nil)
+                    status = "Restarting to finish the update…"; handedOff = true; showDetails = false
+                    // Leave the SwiftUI action before closing native sheets and quitting.
+                    DispatchQueue.main.async { [self] in
+                        if let finishInstallation { finishInstallation() }
+                        else { NSApp.terminate(nil) }
+                    }
                 } catch { try? FileManager.default.removeItem(at:stage); throw error }
             } catch {
                 status = Task.isCancelled ? "Update cancelled. Your installed app was kept." : error.localizedDescription

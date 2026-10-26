@@ -303,3 +303,18 @@ The banner and full release notes were visually checked in an isolated synthetic
 preview; installation was disabled there. Normal mode's real GitHub check
 returned "You're up to date (0.4.0)" against the then-current 0.3.0 public release.
 The final public 0.4.1 update and in-app restart are recorded below when executed.
+
+### 0.4.2: update restart handoff
+
+The first real 0.4.0-to-0.4.1 attempt downloaded the public archive, verified it,
+and preserved the local signer, but the running app did not exit while its
+SwiftUI notes sheet was active. The helper timed out after 30 seconds and left
+the installed 0.4.0 bundle intact. The install log confirmed that safe refusal.
+0.4.1 was marked prerelease and removed as latest before further distribution.
+
+The handoff now leaves the SwiftUI action, closes the app's own sheet, flushes
+preferences, restores Focus, unregisters app resources, and ends its own process
+after the user has chosen Update & Restart. The native smoke check deliberately
+holds the notes sheet active: it passed menu/hotkey checks and exited normally in
+3.9 seconds. Final 0.4.2 packages built for both architectures and repeated all
+23 installer checks successfully. Real public-release retry is recorded below.

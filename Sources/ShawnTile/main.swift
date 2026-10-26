@@ -23,11 +23,13 @@ import TileCore
         statusItem.button?.image = NSImage(systemSymbolName:"rectangle.split.2x2",accessibilityDescription:"Shawn Tile")
         statusItem.button?.toolTip = "Shawn Tile — automatic window tiling"
         rebuildMenu()
+        updates.finishInstallation = { [weak self] in self?.quitForUpdate() }
         updates.changed = { [weak self] in if self?.menuIsOpen == false { self?.rebuildMenu() } }
         if !testing { updates.start() }
         manager.menuChanged = { [weak self] in if self?.menuIsOpen == false { self?.rebuildMenu() } }
         if CommandLine.arguments.contains("--smoke-test") {
             showSettings()
+            updates.showDetails = true; updates.installing = true; updates.status = "Testing update restart…"
             print("SMOKE: app launched; displays=\(manager.displays.count); accessibility=\(manager.trusted); shortcuts_failed=\(manager.shortcutErrors.count)")
             DispatchQueue.main.asyncAfter(deadline:.now()+0.3) {
                 print("SMOKE: posted_hotkey_status=\(self.hotKeys?.postSmokeEvent() ?? -1)")
@@ -36,7 +38,7 @@ import TileCore
                 print("SMOKE: settings_visible=\(self.settingsWindow?.isVisible == true); menu_items=\(self.statusItem.menu?.items.count ?? 0)")
                 let capacity = self.manager.activeDisplay().map { self.manager.configuration($0).capacity } ?? 0
                 print("SMOKE: hotkey_handler_capacity=\(capacity); expected=1")
-                NSApp.terminate(nil)
+                self.quitForUpdate()
             }
         } else if !UserDefaults.standard.bool(forKey:"onboarded") || CommandLine.arguments.contains("--settings") || CommandLine.arguments.contains("--keyboard-preview") || CommandLine.arguments.contains("--update-preview") {
             showSettings(); UserDefaults.standard.set(true,forKey:"onboarded")
@@ -93,6 +95,18 @@ import TileCore
             window.contentView = NSHostingView(rootView:SettingsView(manager:manager,hotKeys:hotKeys!,updates:updates)); window.center(); settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
+    }
+    func quitForUpdate() {
+        // This app has no documents to save. Flush its preferences and clean up
+        // geometry/hotkeys before ending the process for the waiting installer.
+        manager.shutdown(); hotKeys = nil; updates.shutdown()
+        if let smokeDomain { UserDefaults.standard.removePersistentDomain(forName:smokeDomain) }
+        UserDefaults.standard.synchronize()
+        for window in NSApp.windows { if let sheet = window.attachedSheet { window.endSheet(sheet) } }
+        NSApp.terminate(nil)
+        // AppKit can decline termination while a SwiftUI sheet is winding down.
+        // The user explicitly chose Update & Restart and cleanup is complete.
+        exit(0)
     }
     @objc func showUpdates() { showSettings(); updates.showDetails = true }
     @objc func checkUpdates() { showUpdates(); updates.check(manual:true) }

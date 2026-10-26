@@ -1,4 +1,4 @@
-# Shawn Tile behavior specification: 0.4.1
+# Shawn Tile behavior specification: 0.4.2
 
 Personal and shareable macOS 13+ menu bar window manager, implemented in Swift using public AppKit and Accessibility APIs. Initial state is paused; the user enables automatic tiling after granting Accessibility. No license check, screenshots, key logging, or saved titles. The optional updater contacts this project’s GitHub releases.
 

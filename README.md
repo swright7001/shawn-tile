@@ -26,7 +26,7 @@ Full installation, update, and uninstall instructions: [docs/INSTALL.txt](docs/I
 
 ## Updates
 
-Version 0.4.1 adds built-in updates. Install this version once if you have an
+Version 0.4.2 adds built-in updates. Install this version once if you have an
 older release. Afterward the app checks GitHub daily, shows a banner with new
 features, and offers **Update & Restart**. You can also choose **Check for
 Updates** in the menu or General settings. Automatic checks can be turned off;
