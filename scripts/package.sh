@@ -2,8 +2,10 @@
 set -euo pipefail
 TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
-TILE_VERSION="${TILE_VERSION:-0.3.0}"
 [[ -d 'dist/Shawn Tile.app' ]] || scripts/build.sh
+TILE_BUILT_VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' 'dist/Shawn Tile.app/Contents/Info.plist')"
+TILE_VERSION="${TILE_VERSION:-$TILE_BUILT_VERSION}"
+[[ "$TILE_VERSION" == "$TILE_BUILT_VERSION" ]] || { echo 'Package version must match the built app.' >&2; exit 1; }
 lipo 'dist/Shawn Tile.app/Contents/MacOS/ShawnTile' -verify_arch arm64 x86_64
 codesign --verify --deep --strict 'dist/Shawn Tile.app'
 TILE_STAGE="$(mktemp -d "${TMPDIR:-/tmp}/shawn-tile.XXXXXX")"

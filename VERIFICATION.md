@@ -262,3 +262,44 @@ signing and both-architecture checks. DMG/ZIP SHA-256 checks passed. Published
 v0.3.0 with the DMG, ZIP and SHA256SUMS; unauthenticated GitHub release metadata
 confirmed all three assets and SHA-256 digests matching the local packages:
 https://github.com/swright7001/shawn-tile/releases/tag/v0.3.0.
+
+### 0.4.1: explicit layout selection and in-app updates
+
+The screenshot report was reproduced by source inspection: fitting could change
+an explicit Grid/Rows selection to another arrangement, and portrait fixed
+geometry also ignored explicit choices. Grid, Rows and Columns now retain their
+shape. Auto is the explicit mode for alternate arrangements and is the default
+for new settings. Existing stored layout choices migrate unchanged. Four-tile
+Grid tries complete-stack slot permutations with the primary fixed before
+lowering count. Layout changes re-measure window constraints.
+
+Pure layout/shortcut/update/archive checks passed **3,691 assertions**. Added
+coverage includes explicit shapes on both orientations, constrained stack count,
+mixed Grid minimums, stable preference migration, semantic version ordering,
+stable-release filtering, canonical repository asset URLs, missing/wrong digests,
+oversized metadata/assets, unsafe redirects, checksum/size failures, ZIP traversal,
+symlinks, unsupported entries and truncation.
+
+Real disposable-window checks passed **15 layout-mode checks** (PID 46022),
+including repeated Grid/Rows/Columns changes, constrained Grid/Rows stacking,
+Auto fallback, mixed-size Grid rebalancing and recovery. The existing **18 AX
+regression checks passed** (PID 46113). The **89 keyboard fixture checks passed**
+(PID 43153) after the layout-mode change. These fixtures only managed their
+child process, not the ordinary desktop. Physical portrait/multi-display tests
+remain a gap; those orientations are covered by pure checks.
+
+Disposable updater checks passed **23 checks**. Real packaged ZIP extraction and
+strict verification succeeded. Both configured local-certificate and public ad
+hoc copies installed through the helper. The previous bundle was retained on
+success. Injected replacement failure restored the exact prior app directory and
+original path. Wrong checksum/size, wrong app version and a mismatched configured
+identity were rejected with the installed copy intact. Cancellation prevented
+preparation and terminated a running preparation child process promptly.
+
+Installed a locally signed 0.4.0 pilot without changing Accessibility. Its native
+UI showed a real four-tile Grid, changed to two horizontal Rows with the same
+current apps, and changed back to Grid. Fitting remains subject to app minimums.
+The banner and full release notes were visually checked in an isolated synthetic
+preview; installation was disabled there. Normal mode's real GitHub check
+returned "You're up to date (0.4.0)" against the then-current 0.3.0 public release.
+The final public 0.4.1 update and in-app restart are recorded below when executed.

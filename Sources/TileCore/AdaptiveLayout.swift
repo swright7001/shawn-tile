@@ -17,7 +17,7 @@ public enum AdaptiveLayout {
         }
         if !settings.autoFit {
             var fixed = state; fixed.reconcile(windows: windows, capacity: settings.capacity, focused: focused)
-            return FittedLayout(state: fixed, frames: Geometry.frames(in: area, count: fixed.tiles.count, settings: settings), layout: settings.layout, floating: [])
+            return FittedLayout(state: fixed, frames: Geometry.frames(in: area, count: fixed.tiles.count, settings: settings), layout: Geometry.resolvedLayout(in:area,settings:settings), floating: [])
         }
         let gap = min(max(0, settings.gap), min(area.width, area.height) / 12)
         let floating = windows.filter { id in
@@ -28,36 +28,48 @@ public enum AdaptiveLayout {
         guard !fitWindows.isEmpty else {
             return FittedLayout(state: TileState(), frames: [], layout: settings.layout, floating: floating)
         }
-        // Tile count is a ceiling. Try alternate arrangements before creating a larger stack.
-        let preferred: Layout = area.height > area.width ? .rows : settings.layout
-        let layouts = [preferred] + Layout.allCases.filter { $0 != preferred }
+        // Explicit layouts keep their shape. Only Auto may choose another arrangement.
+        let preferred = Geometry.resolvedLayout(in:area,settings:settings)
+        let layouts = settings.layout == .automatic ? [preferred] + [Layout.grid,.columns,.rows].filter { $0 != preferred } : [preferred]
         for count in stride(from: min(max(1, settings.capacity), min(4, fitWindows.count)), through: 1, by: -1) {
             var candidate = state
             candidate.reconcile(windows: fitWindows, capacity: count, focused: focused)
-            let needs = candidate.tiles.map { ids in
-                ids.reduce(CGSize.zero) { size, id in
-                    let needed = minimums[id] ?? .zero
-                    return CGSize(width: max(size.width, needed.width), height: max(size.height, needed.height))
+            // Rebalance complete stacks across four Grid slots before reducing
+            // the count. Keep the primary at slot zero, and try existing order first.
+            let gridOrders = count == 4 ? [[0,1,2,3],[0,1,3,2],[0,2,1,3],[0,2,3,1],[0,3,1,2],[0,3,2,1]] : [Array(candidate.tiles.indices)]
+            func needs(_ arrangement:TileState) -> [CGSize] {
+                arrangement.tiles.map { ids in
+                    ids.reduce(CGSize.zero) { size,id in
+                        let required = minimums[id] ?? .zero
+                        return CGSize(width:max(size.width,required.width),height:max(size.height,required.height))
+                    }
                 }
             }
             for layout in layouts {
-                if let frames = fit(box: area.insetBy(dx:gap,dy:gap), needs: needs, gap: gap, layout: layout) {
-                    return FittedLayout(state: candidate, frames: frames, layout: layout, floating: floating)
+                let orders = layout == .grid ? gridOrders : [Array(candidate.tiles.indices)]
+                for order in orders {
+                    let arranged = candidate.reordered(order)
+                    if let frames = fit(box:area.insetBy(dx:gap,dy:gap),needs:needs(arranged),gap:gap,layout:layout) {
+                        return FittedLayout(state:arranged,frames:frames,layout:layout,floating:floating)
+                    }
                 }
             }
             // Decorative space must not force an otherwise fitting window out of the layout.
-            // Keep the largest whole-point gap that works before reducing the tile count.
             for layout in layouts {
-                guard fit(box:area,needs:needs,gap:0,layout:layout) != nil else { continue }
-                var low = 0, high = Int(floor(gap))
-                while low < high {
-                    let middle = (low+high+1)/2, candidateGap = CGFloat(middle)
-                    if fit(box:area.insetBy(dx:candidateGap,dy:candidateGap),needs:needs,gap:candidateGap,layout:layout) != nil { low = middle }
-                    else { high = middle-1 }
-                }
-                let fittedGap = CGFloat(low)
-                if let frames = fit(box:area.insetBy(dx:fittedGap,dy:fittedGap),needs:needs,gap:fittedGap,layout:layout) {
-                    return FittedLayout(state:candidate,frames:frames,layout:layout,floating:floating)
+                let orders = layout == .grid ? gridOrders : [Array(candidate.tiles.indices)]
+                for order in orders {
+                    let arranged = candidate.reordered(order), required = needs(arranged)
+                    guard fit(box:area,needs:required,gap:0,layout:layout) != nil else { continue }
+                    var low = 0, high = Int(floor(gap))
+                    while low < high {
+                        let middle = (low+high+1)/2, candidateGap = CGFloat(middle)
+                        if fit(box:area.insetBy(dx:candidateGap,dy:candidateGap),needs:required,gap:candidateGap,layout:layout) != nil { low = middle }
+                        else { high = middle-1 }
+                    }
+                    let fittedGap = CGFloat(low)
+                    if let frames = fit(box:area.insetBy(dx:fittedGap,dy:fittedGap),needs:required,gap:fittedGap,layout:layout) {
+                        return FittedLayout(state:arranged,frames:frames,layout:layout,floating:floating)
+                    }
                 }
             }
         }

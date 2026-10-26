@@ -2,9 +2,9 @@
 set -euo pipefail
 TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
-TILE_VERSION="${TILE_VERSION:-0.3.0}"
+TILE_VERSION="${TILE_VERSION:-0.4.1}"
 TILE_ARCH="${1:-universal}"
-TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-2}"
+TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-4}"
 TILE_APP="$TILE_ROOT/dist/Shawn Tile.app"
 mkdir -p "$TILE_APP/Contents/MacOS" "$TILE_APP/Contents/Resources"
 if [[ "$TILE_ARCH" == universal ]]; then
@@ -36,5 +36,6 @@ PLIST
 swift scripts/icon.swift "$TILE_ROOT/dist/AppIcon.iconset"
 iconutil -c icns "$TILE_ROOT/dist/AppIcon.iconset" -o "$TILE_APP/Contents/Resources/AppIcon.icns"
 cp LICENSE "$TILE_APP/Contents/Resources/LICENSE"
+cp scripts/update-helper.sh "$TILE_APP/Contents/Resources/update-helper.sh"
 "$TILE_ROOT/scripts/sign.sh" "$TILE_APP"
 printf 'Built %s\n' "$TILE_APP"

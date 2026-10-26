@@ -1,33 +1,37 @@
 import Foundation
 import CoreGraphics
 
-public enum Layout: String, Codable, CaseIterable { case grid, columns, rows }
+public enum Layout: String, Codable, CaseIterable { case automatic, grid, columns, rows }
 public struct DisplaySettings: Codable, Equatable {
-    public var layout: Layout = .grid
+    public var layout: Layout = .automatic
     public var capacity: Int = 3
     public var gap: Double = 10
     public var autoFit: Bool = true
-    public init(layout: Layout = .grid, capacity: Int = 3, gap: Double = 10, autoFit: Bool = true) {
+    public init(layout: Layout = .automatic, capacity: Int = 3, gap: Double = 10, autoFit: Bool = true) {
         self.layout = layout; self.capacity = capacity; self.gap = gap; self.autoFit = autoFit
     }
     private enum CodingKeys: String, CodingKey { case layout, capacity, gap, autoFit }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        layout = try values.decodeIfPresent(Layout.self, forKey: .layout) ?? .grid
+        layout = try values.decodeIfPresent(Layout.self, forKey: .layout) ?? .automatic
         capacity = try values.decodeIfPresent(Int.self, forKey: .capacity) ?? 3
         gap = try values.decodeIfPresent(Double.self, forKey: .gap) ?? 10
         autoFit = try values.decodeIfPresent(Bool.self, forKey: .autoFit) ?? true
     }
 }
 public enum Geometry {
+    public static func resolvedLayout(in area: CGRect, settings: DisplaySettings) -> Layout {
+        settings.layout == .automatic ? (area.height > area.width ? .rows : .grid) : settings.layout
+    }
     /// All coordinates use Accessibility's global, top-left coordinate system.
     public static func frames(in area: CGRect, count: Int, settings: DisplaySettings) -> [CGRect] {
         guard count > 0, area.width > 0, area.height > 0 else { return [] }
         let n = min(4, count)
         let g = min(max(0, settings.gap), min(area.width, area.height) / 12)
         let box = area.insetBy(dx: g, dy: g)
-        let horizontal = settings.layout == .rows || area.height > area.width
-        if settings.layout == .columns || horizontal {
+        let layout = resolvedLayout(in:area,settings:settings)
+        let horizontal = layout == .rows
+        if layout == .columns || horizontal {
             return (0..<n).map { i in
                 if horizontal {
                     let h = (box.height - g * Double(n - 1)) / Double(n)
@@ -85,6 +89,10 @@ public struct TileState: Equatable {
         while tiles.count < limit, let source = tiles.firstIndex(where: { $0.count > 1 }) {
             let id = tiles[source].removeLast(); tiles.append([id])
         }
+    }
+    public func reordered(_ order:[Int]) -> TileState {
+        guard order.count == tiles.count, Set(order) == Set(tiles.indices) else { return self }
+        var copy = self; copy.tiles = order.map { tiles[$0] }; return copy
     }
     public func slot(of id: String) -> Int? { tiles.firstIndex { $0.contains(id) } }
     public func next(in id: String, offset: Int = 1) -> String? {

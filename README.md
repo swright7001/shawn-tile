@@ -4,8 +4,8 @@ A native, offline window manager for macOS. Open an app and it joins your layout
 
 Original Swift software inspired by the public behavior of [Shoji](https://shojimac.com/). No Shoji code, assets, branding, or native binary included.
 
-- Grid, columns, and rows, with one to four tiles per display
-- Automatic fitting: adjust splits and spacing, try another arrangement, and stack when fewer tiles fit
+- Grid, columns, and rows that keep your selected shape, plus an Auto arrangement
+- Automatic fitting: adjust splits and spacing, rebalance Grid slots, and stack when fewer tiles fit
 - Per-display spacing, maximum tile count, and settings
 - Overflow stacks and keyboard window switching
 - Customizable shortcuts, disable individual actions, and restore defaults
@@ -13,7 +13,8 @@ Original Swift software inspired by the public behavior of [Shoji](https://shoji
 - App exclusions, pause/resume, restore pre-tiling positions
 - Native menu bar controls and settings, optional open at login
 - Apple Silicon and Intel; macOS 13 Ventura or newer
-- No account, telemetry, subscriptions, or application network traffic
+- Update banner, feature notes, and an Update & Restart button
+- No account, telemetry or subscriptions. Optional GitHub update checks and user-started downloads
 
 ## Install
 
@@ -22,6 +23,22 @@ Download the universal DMG or ZIP from [Releases](https://github.com/swright7001
 In the app, open permission settings and enable **Shawn Tile** under **Accessibility** (Device Control & Data Access on newer macOS). Then switch on **Automatic tiling**. Each Mac needs its own permission. Use the rectangle icon in your menu bar for controls.
 
 Full installation, update, and uninstall instructions: [docs/INSTALL.txt](docs/INSTALL.txt).
+
+## Updates
+
+Version 0.4.1 adds built-in updates. Install this version once if you have an
+older release. Afterward the app checks GitHub daily, shows a banner with new
+features, and offers **Update & Restart**. You can also choose **Check for
+Updates** in the menu or General settings. Automatic checks can be turned off;
+downloads and installation always start with your button press.
+
+The installer checks GitHub's SHA-256 digest, archive contents, app identity,
+version and signature before replacement. It keeps the previous app as a backup
+and restores it if replacement fails. A configured local signing identity is
+reused; it never silently switches that installation to ad hoc signing. Public
+ad hoc builds may still need Accessibility refreshed after updating. See
+[update behavior and verification](docs/UPDATES.md).
+
 
 ## Build and install from source
 
@@ -74,11 +91,11 @@ from the menu uses app names and transient IDs so titles need not be read.
 
 ## Boundaries
 
-Pause while using Stage Manager or another tiling manager. Standard resizable windows on the active Space are eligible; sheets, dialogs, fullscreen/minimized windows, hidden apps, and exclusions are skipped. With automatic fitting on (the default), Shawn Tile learns dimensions your windows reject, adjusts split ratios and arrangements, reduces gaps only as needed, and stacks windows if fewer tiles fit. The saved tile count is a maximum. Closing restrictive windows or adding display space restores more tiles automatically. Tidy now clears learned bounds and retries. Bounds stay in memory for the current windows; a window larger than the entire usable display is centered and reported separately. Turn off Automatically fit windows for fixed layouts.
+Pause while using Stage Manager or another tiling manager. Standard resizable windows on the active Space are eligible; sheets, dialogs, fullscreen/minimized windows, hidden apps, and exclusions are skipped. With automatic fitting on (the default), Shawn Tile learns dimensions your windows reject, adjusts split sizes and gaps, and stacks windows if fewer tiles fit. Grid, Rows and Columns keep the shape you select on either display orientation. Auto may choose another arrangement to fit more tiles. Grid can rebalance complete stacks while keeping the primary first. The saved tile count is a maximum. Closing restrictive windows or adding display space restores more tiles automatically. Tidy now clears learned bounds and retries. Bounds stay in memory for the current windows; a window larger than the entire usable display is centered and reported separately. Turn off Automatically fit windows for fixed layouts.
 
-This first version does not implement dimming/privacy modes, thumbnail switchers, hover bars, mouse modifier-drag swaps, shared split resizing, cross-display directional shortcuts, or automatic updates. Moving a window to another display by dragging is detected. Display settings persist, but live stack membership is rediscovered on Space changes and restart. A display is identified by its system UUID.
+This version does not implement dimming/privacy modes, thumbnail switchers, hover bars, mouse modifier-drag swaps, shared split resizing, or cross-display directional shortcuts. Moving a window to another display by dragging is detected. Display settings persist, but live stack membership is rediscovered on Space changes and restart. A display is identified by its system UUID.
 
-The app keeps local preferences in `com.shawnwright.ShawnTile` (display layouts, exclusions, shortcut bindings, enabled/onboarding flags). Window geometry/references are kept in memory for restoration; window titles, documents, and screenshots are not read or saved. A 1.5-second reconciliation fallback complements Accessibility and workspace events.
+The app keeps local preferences in `com.shawnwright.ShawnTile` (display layouts, exclusions, shortcut bindings, update preferences/release cache, enabled/onboarding flags). Window geometry/references are kept in memory for restoration; window titles, documents, and screenshots are not read or saved. A 1.5-second reconciliation fallback complements Accessibility and workspace events.
 
 ## REA project records
 

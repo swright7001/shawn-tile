@@ -17,6 +17,7 @@ final class WindowManager: ObservableObject {
     @Published var focusActive = false
     @Published var shortcutErrors: [String] = []
     @Published var effectiveTiles: [String:Int] = [:]
+    @Published var effectiveLayouts: [String:Layout] = [:]
     private var minimums: [String:CGSize] = [:]
     private var fittedFrames: [String:[CGRect]] = [:]
     private var layoutGeneration = 0
@@ -61,6 +62,9 @@ final class WindowManager: ObservableObject {
         var value = configuration(id); change(&value); value.capacity = min(4,max(1,value.capacity)); value.gap = min(32,max(0,value.gap))
         settings[id] = value
         if let data = try? JSONEncoder().encode(settings) { preferences.set(data,forKey:"displays") }
+        // Re-measure when the arrangement changes. An app's accepted size can
+        // depend on its previous frame, so do not carry stale constraints over.
+        minimums = [:]
         restoreFocus(); lastSignature = ""; refresh(force:true)
     }
     func exclude(_ bundle:String) {
@@ -200,6 +204,7 @@ final class WindowManager: ObservableObject {
                 settings:configuration(display.id), focused:focused)
             states[display.id] = plan.state; fittedFrames[display.id] = plan.frames
             effectiveTiles[display.id] = plan.state.tiles.count
+            effectiveLayouts[display.id] = plan.layout
             tileCount += plan.state.tiles.count
             stacked += max(0, members.count - plan.floating.count - plan.state.tiles.count)
             tooLarge += plan.floating.count

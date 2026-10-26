@@ -18,6 +18,10 @@ jobs:
         run: scripts/build.sh
       - name: Package
         run: scripts/package.sh
+      - name: Test updater replacement and rollback
+        run: |
+          TILE_TEST_VERSION=$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' 'dist/Shawn Tile.app/Contents/Info.plist')
+          'dist/Shawn Tile.app/Contents/MacOS/ShawnTile' --updater-test "dist/ShawnTile-$TILE_TEST_VERSION-universal.zip" 'dist/Shawn Tile.app' "$PWD/scripts/update-helper.sh"
       - uses: actions/upload-artifact@v4
         with:
           name: ShawnTile-universal

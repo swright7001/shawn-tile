@@ -47,3 +47,24 @@ were authored here. Physical testing through Screen Sharing established that
 Control-Shift-Command-P reached the app when the original Control-Option-P did
 not. The particular source of interception was not established. See executed
 checks and limits in VERIFICATION.md.
+
+## 0.4 layout and updater investigation
+
+The user's screenshot showed explicit Grid selected with a column arrangement.
+Inspection established that the planner tried alternate arrangements whenever
+fitting was enabled, and fixed geometry also imposed rows on portrait displays.
+The original implementation now distinguishes Auto from explicit shape choices.
+Mixed minimum-size fixtures also established the need to rebalance four Grid
+stack groups before lowering count. No new reference-product code was consulted.
+
+Updater API references were GitHub's release-asset digest documentation and
+Apple URLSession redirect/delegate documentation:
+- https://docs.github.com/en/rest/releases/assets
+- https://github.blog/changelog/2025-06-03-releases-now-expose-digests-for-release-assets/
+- https://developer.apple.com/documentation/foundation/urlsessiontaskdelegate
+
+The native updater, bounded ZIP-directory validator, installation helper and
+checks were authored here using Apple frameworks and built-in macOS tools.
+Source authentication depends on this project's GitHub release account and TLS;
+archive digests and strict signatures provide additional integrity checks.
+Execution evidence and remaining limits are in VERIFICATION.md.

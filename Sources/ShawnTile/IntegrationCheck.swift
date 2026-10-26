@@ -32,6 +32,14 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
                     case "large":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
                         for window in self.windows where window.isVisible { window.minSize = NSSize(width:area.width*0.62,height:area.height*0.62) }
+                    case "mixed":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
+                        for (index,window) in self.windows.enumerated() where window.isVisible {
+                            window.minSize = NSSize(width:100,height:(index == 2 || index == 3) ? area.height*0.65 : 100)
+                        }
+                    case "tall":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
+                        for window in self.windows where window.isVisible { window.minSize = NSSize(width:100,height:area.height*0.65) }
                     case "fullHeight":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
                         for window in self.windows where window.isVisible { window.minSize = NSSize(width:100,height:area.height) }
@@ -120,7 +128,7 @@ func runIntegration() {
                                             check(frames.allSatisfy { screen.area.insetBy(dx:-2,dy:-2).contains($0) },"accepted real window frames stay inside the display")
                                             send("fullHeight")
                                             later(0.5) {
-                                                m.tidy()
+                                                m.update(screen.id) { $0.layout = .automatic }; m.tidy()
                                                 later(2) {
                                                     let full = m.windows.compactMap { axFrame($0.element) }
                                                     check(m.effectiveTiles[screen.id] == 4 && full.allSatisfy{abs($0.height-screen.area.height)<2},"automatic gap reduction fits full-height window minimums")

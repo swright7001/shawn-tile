@@ -33,14 +33,19 @@ action's usual key, including P for pause/resume. You can edit any binding after
 applying the preset, or Restore Defaults to return to the original combinations.
 
 Pause before using Stage Manager, native edge tiling, or another window manager.
-Automatically fit windows is on by default. Shawn Tile adjusts split sizes, spacing and
-arrangements to the minimums your windows accept. If fewer tiles fit, it stacks
+Automatically fit windows is on by default. Shawn Tile adjusts split sizes and spacing to the minimums your windows accept.
+Grid, Rows and Columns keep the selected shape; Auto can change arrangements. If fewer tiles fit, it stacks
 extra windows; more tiles return when room opens up. Your tile count is a maximum.
 Tidy now forgets learned minimums and retries. A window too large for the whole
 display is centered and reported separately. General > Pause and restore pre-tiling positions
 restores still-visible windows from this session.
 
-Updates: quit the old app, replace it at the same location, and reopen. Ad hoc
+Updates (0.4.1 and newer): use Check for Updates in the menu or General settings.
+A new-release banner shows features; Update & Restart downloads, verifies,
+backs up and replaces the app. Daily checks can be turned off in General.
+Install 0.4.1 manually once if you have an older version without these controls.
+Read-only DMG copies must first be moved to Applications or ~/Applications.
+For manual updates, quit the old app, replace it at the same location, and reopen. Ad hoc
 signatures can require re-granting Accessibility after a rebuild. Remove and
 re-add the app in System Settings if an old grant no longer works.
 

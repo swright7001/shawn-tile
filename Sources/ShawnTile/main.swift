@@ -2,24 +2,29 @@ import AppKit
 import SwiftUI
 import TileCore
 
-final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
+@MainActor final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var manager:WindowManager!
     var hotKeys:HotKeys?
+    var updates:UpdateController!
     var statusItem:NSStatusItem!
     var settingsWindow:NSWindow?
     var menuIsOpen = false
     var smokeDomain:String?
     func applicationDidFinishLaunching(_ notification:Notification) {
         NSApp.setActivationPolicy(.accessory)
-        if CommandLine.arguments.contains("--smoke-test") || CommandLine.arguments.contains("--keyboard-preview") {
+        if CommandLine.arguments.contains("--smoke-test") || CommandLine.arguments.contains("--keyboard-preview") || CommandLine.arguments.contains("--update-preview") {
             let domain = "com.shawnwright.ShawnTile.Smoke.\(UUID().uuidString)"
             smokeDomain = domain; manager = WindowManager(preferences:UserDefaults(suiteName:domain)!)
         } else { manager = WindowManager() }
         hotKeys = HotKeys(manager:manager)
+        let testing = CommandLine.arguments.contains("--smoke-test") || CommandLine.arguments.contains("--keyboard-preview") || CommandLine.arguments.contains("--update-preview")
+        updates = UpdateController(preferences:manager.preferences,preview:testing)
         statusItem = NSStatusBar.system.statusItem(withLength:NSStatusItem.variableLength)
         statusItem.button?.image = NSImage(systemSymbolName:"rectangle.split.2x2",accessibilityDescription:"Shawn Tile")
         statusItem.button?.toolTip = "Shawn Tile — automatic window tiling"
         rebuildMenu()
+        updates.changed = { [weak self] in if self?.menuIsOpen == false { self?.rebuildMenu() } }
+        if !testing { updates.start() }
         manager.menuChanged = { [weak self] in if self?.menuIsOpen == false { self?.rebuildMenu() } }
         if CommandLine.arguments.contains("--smoke-test") {
             showSettings()
@@ -33,7 +38,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 print("SMOKE: hotkey_handler_capacity=\(capacity); expected=1")
                 NSApp.terminate(nil)
             }
-        } else if !UserDefaults.standard.bool(forKey:"onboarded") || CommandLine.arguments.contains("--settings") || CommandLine.arguments.contains("--keyboard-preview") {
+        } else if !UserDefaults.standard.bool(forKey:"onboarded") || CommandLine.arguments.contains("--settings") || CommandLine.arguments.contains("--keyboard-preview") || CommandLine.arguments.contains("--update-preview") {
             showSettings(); UserDefaults.standard.set(true,forKey:"onboarded")
         }
     }
@@ -49,7 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             let parent = NSMenuItem(title:display.name,action:nil,keyEquivalent:"")
             let sub = NSMenu(); let config = manager.configuration(display.id)
             for layout in Layout.allCases {
-                let entry = NSMenuItem(title:layout.rawValue.capitalized,action:#selector(layoutAction(_:)),keyEquivalent:"")
+                let entry = NSMenuItem(title:layout == .automatic ? "Auto" : layout.rawValue.capitalized,action:#selector(layoutAction(_:)),keyEquivalent:"")
                 entry.target = self; entry.representedObject = [display.id,layout.rawValue]; entry.state = layout == config.layout ? .on : .off; sub.addItem(entry)
             }
             sub.addItem(.separator())
@@ -71,6 +76,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
         list.submenu = sub; menu.addItem(list)
         menu.addItem(.separator())
+        if let release = updates?.available { item("Update to \(release.version)…",menu,action:#selector(showUpdates)) }
+        item("Check for Updates…",menu,action:#selector(checkUpdates))
         item("Settings…",menu,action:#selector(showSettings),key:",")
         item("Pause and restore original positions",menu,action:#selector(restore))
         item("Quit Shawn Tile",menu,action:#selector(quit),key:"q")
@@ -83,10 +90,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             let window = NSWindow(contentRect:NSRect(x:0,y:0,width:668,height:510),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
             window.title = "Shawn Tile"; window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView:SettingsView(manager:manager,hotKeys:hotKeys!)); window.center(); settingsWindow = window
+            window.contentView = NSHostingView(rootView:SettingsView(manager:manager,hotKeys:hotKeys!,updates:updates)); window.center(); settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
     }
+    @objc func showUpdates() { showSettings(); updates.showDetails = true }
+    @objc func checkUpdates() { showUpdates(); updates.check(manual:true) }
     @objc func toggle() { manager.enabled.toggle(); if !manager.trusted { showSettings() } }
     @objc func permission() { manager.requestPermission() }
     @objc func tidy() { manager.tidy() }
@@ -103,22 +112,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         guard let value = sender.representedObject as? [String], let count = Int(value[1]) else { return }; manager.update(value[0]){$0.capacity=count}
     }
     func applicationShouldHandleReopen(_ sender:NSApplication,hasVisibleWindows:Bool) -> Bool { showSettings(); return true }
-    func applicationWillTerminate(_ notification:Notification) { manager.shutdown(); hotKeys = nil; if let smokeDomain { UserDefaults.standard.removePersistentDomain(forName:smokeDomain) } }
+    func applicationWillTerminate(_ notification:Notification) { updates?.shutdown(); manager.shutdown(); hotKeys = nil; if let smokeDomain { UserDefaults.standard.removePersistentDomain(forName:smokeDomain) } }
 }
 if CommandLine.arguments.contains("--fixture") {
     runFixture()
+} else if CommandLine.arguments.contains("--updater-test") {
+    runUpdaterChecks()
+} else if CommandLine.arguments.contains("--layout-mode-test") {
+    runLayoutModeChecks()
 } else if CommandLine.arguments.contains("--keyboard-test") {
     runKeyboardChecks()
 } else if CommandLine.arguments.contains("--integration-test") {
     runIntegration()
 } else if CommandLine.arguments.contains("--diagnostics") {
     let displays = connectedDisplays()
-    print("Shawn Tile 0.3.0 | \(ProcessInfo.processInfo.operatingSystemVersionString)")
+    print("Shawn Tile \(UpdateController.currentVersion) | \(ProcessInfo.processInfo.operatingSystemVersionString)")
     print("Accessibility: \(AXIsProcessTrusted()) | displays: \(displays.count)")
     for display in displays { print("\(display.name): \(display.area)") }
 } else {
     let app = NSApplication.shared
-    let delegate = AppDelegate()
+    let delegate = MainActor.assumeIsolated { AppDelegate() }
     app.delegate = delegate
     withExtendedLifetime(delegate) { app.run() }
 }
