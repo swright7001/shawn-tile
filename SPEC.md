@@ -138,7 +138,7 @@ responsiveness checks, fitting may try the next lower tile count without saving
 that ambiguous dimension as a minimum. Keep the user's configured maximum and
 layout choice. Unknown responses alone stop this fallback at two tiles; only
 confirmed constraints may force a single tile. Verify the final frames and report
-any remaining mismatch. A new Tidy/layout/discovery cycle retries the configured
+any remaining mismatch. A new Tidy/layout/window-membership cycle retries the configured
 maximum so this temporary fallback cannot permanently lock the user to fewer tiles.
 
 For Auto, ambiguous height overflow first tries Columns and ambiguous width
@@ -148,3 +148,9 @@ orientation that would collapse to one tile when the preferred plan still has
 multiple tiles. Explicit Grid/Rows/Columns retain their shape. These fallbacks
 share the same nine-pass budget and require stable samples; a window still
 animating does not trigger an alternative arrangement.
+
+Retain a verified fallback across late size-only updates, rather than repeatedly
+restarting a layout already rejected by the same window set. Tidy, explicit
+layout/settings changes, and changes to window/display membership clear it and
+retry the configured maximum. Discovery's settling deadline advances after both
+probe and retry writes, not just the first frame request.

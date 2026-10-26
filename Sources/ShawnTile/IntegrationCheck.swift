@@ -149,68 +149,75 @@ func runIntegration() {
     func later(_ seconds:Double,_ block:@escaping ()->Void) { DispatchQueue.main.asyncAfter(deadline:.now()+seconds,execute:block) }
     later(2) {
         let m = WindowManager(preferences:preferences,onlyPID:child.processIdentifier); manager = m
-        check(m.windows.count == 5,"discover five fixture windows and exclude all other apps")
-        guard m.windows.count == 5 else { m.shutdown(); if child.isRunning { child.terminate() }; exit(1) }
-        guard let screen = m.displays.first else { failures.append("no display"); app.stop(nil); return }
-        m.update(screen.id) { $0.capacity = 3; $0.gap = 10; $0.layout = .grid }
-        m.enabled = true
-        later(1) {
-            let actual = m.windows.compactMap{axFrame($0.element)}
-            let unique = Set(actual.map{NSStringFromRect($0)})
-            check(actual.count == 5 && unique.count == 3,"real Accessibility positions five windows into three tiles")
-            let expected = Geometry.frames(in:screen.area,count:3,settings:m.configuration(screen.id))
-            check(actual.allSatisfy { a in expected.contains { abs(a.minX-$0.minX)<4 && abs(a.minY-$0.minY)<4 && abs(a.width-$0.width)<4 && abs(a.height-$0.height)<4 } },"actual bounds match layout engine")
-            m.update(screen.id) { $0.capacity = 4 }
-            later(0.8) {
-                check(Set(m.windows.compactMap{axFrame($0.element)}.map{NSStringFromRect($0)}).count == 4,"capacity increase promotes overflow")
-                m.activate(m.windows[0].id)
-                later(0.5) {
-                    let id = m.windows[0].id
-                    let before = axFrame(m.windows[0].element)
-                    check(m.activeID() == id,"active-window lookup selects requested fixture")
-                    m.toggleFocus()
+        let readyDeadline = ProcessInfo.processInfo.systemUptime+8
+        func startWhenReady() {
+            m.refresh()
+            if m.windows.count != 5 && ProcessInfo.processInfo.systemUptime < readyDeadline {
+                later(0.2) { startWhenReady() }; return
+            }
+            check(m.windows.count == 5,"discover five fixture windows and exclude all other apps")
+            guard m.windows.count == 5 else { m.shutdown(); if child.isRunning { child.terminate() }; exit(1) }
+            guard let screen = m.displays.first else { failures.append("no display"); app.stop(nil); return }
+            m.update(screen.id) { $0.capacity = 3; $0.gap = 10; $0.layout = .grid }
+            m.enabled = true
+            later(1) {
+                let actual = m.windows.compactMap{axFrame($0.element)}
+                let unique = Set(actual.map{NSStringFromRect($0)})
+                check(actual.count == 5 && unique.count == 3,"real Accessibility positions five windows into three tiles")
+                let expected = Geometry.frames(in:screen.area,count:3,settings:m.configuration(screen.id))
+                check(actual.allSatisfy { a in expected.contains { abs(a.minX-$0.minX)<4 && abs(a.minY-$0.minY)<4 && abs(a.width-$0.width)<4 && abs(a.height-$0.height)<4 } },"actual bounds match layout engine")
+                m.update(screen.id) { $0.capacity = 4 }
+                later(0.8) {
+                    check(Set(m.windows.compactMap{axFrame($0.element)}.map{NSStringFromRect($0)}).count == 4,"capacity increase promotes overflow")
+                    m.activate(m.windows[0].id)
                     later(0.5) {
-                        check(m.focusActive && (axFrame(m.windows[0].element)?.width ?? 0) > screen.area.width*0.8,"Focus expands selected window")
-                        m.restoreFocus()
-                        check(axFrame(m.windows.first(where:{$0.id == id})!.element) == before,"Focus restores exact prior bounds")
-                        send("close")
-                        // A pending responsiveness check can defer discovery for
-                        // 1.05 seconds; allow it to finish before checking removal.
-                        later(2) {
-                            m.refresh(force:true); check(m.windows.count == 4,"closed window disappears and survivors reflow")
-                            send("minimize")
-                            later(2.0) {
-                                m.refresh(force:true); check(m.windows.count == 3,"minimized window excluded")
-                                send("restore")
+                        let id = m.windows[0].id
+                        let before = axFrame(m.windows[0].element)
+                        check(m.activeID() == id,"active-window lookup selects requested fixture")
+                        m.toggleFocus()
+                        later(0.5) {
+                            check(m.focusActive && (axFrame(m.windows[0].element)?.width ?? 0) > screen.area.width*0.8,"Focus expands selected window")
+                            m.restoreFocus()
+                            check(axFrame(m.windows.first(where:{$0.id == id})!.element) == before,"Focus restores exact prior bounds")
+                            send("close")
+                            // A pending responsiveness check can defer discovery for
+                            // 1.05 seconds; allow it to finish before checking removal.
+                            later(2) {
+                                m.refresh(force:true); check(m.windows.count == 4,"closed window disappears and survivors reflow")
+                                send("minimize")
                                 later(2.0) {
-                                    m.refresh(force:true); check(m.windows.count == 4,"restored window rejoins")
-                                    m.restoreOriginals(); check(!m.enabled,"restore originals pauses tiling")
-                                    send("large")
-                                    later(0.5) {
-                                        m.enabled = true; m.update(screen.id) { $0.capacity = 4; $0.autoFit = true }
-                                        later(2.5) {
-                                            let frames = m.windows.compactMap { axFrame($0.element) }
-                                            check(m.effectiveTiles[screen.id] == 1 && Set(frames.map{NSStringFromRect($0)}).count == 1,"automatically stack oversized tile candidates without changing configured capacity")
-                                            check(m.configuration(screen.id).capacity == 4,"automatic fitting preserves user's maximum tile preference")
-                                            check(frames.allSatisfy { screen.area.insetBy(dx:-2,dy:-2).contains($0) },"accepted real window frames stay inside the display")
-                                            send("fullHeight")
-                                            later(0.5) {
-                                                m.update(screen.id) { $0.layout = .automatic }; m.tidy()
-                                                later(2) {
-                                                    let full = m.windows.compactMap { axFrame($0.element) }
-                                                    check(m.effectiveTiles[screen.id] == 4 && full.allSatisfy{abs($0.height-screen.area.height)<2},"automatic gap reduction fits full-height window minimums")
-                                                    check(m.configuration(screen.id).gap == 10,"automatic gap reduction preserves preferred spacing")
-                                                    send("replace")
-                                                    later(2.5) {
-                                                m.refresh()
-                                                later(0.7) {
-                                                    check(m.windows.count == 4 && m.effectiveTiles[screen.id] == 4,"automatically restore four tiles after restrictive windows close")
-                                                    check(Set(m.windows.compactMap{axFrame($0.element)}.map{NSStringFromRect($0)}).count == 4,"replacement windows occupy four distinct tiles")
-                                                    m.enabled = false; m.shutdown(); send("quit"); preferences.removePersistentDomain(forName:domain)
-                                                    print("INTEGRATION: \(count) checks, \(failures.count) failures; fixture PID \(child.processIdentifier) only")
-                                                    if child.isRunning { child.terminate() }
-                                                    exit(failures.isEmpty ? 0 : 1)
-                                                }
+                                    m.refresh(force:true); check(m.windows.count == 3,"minimized window excluded")
+                                    send("restore")
+                                    later(2.0) {
+                                        m.refresh(force:true); check(m.windows.count == 4,"restored window rejoins")
+                                        m.restoreOriginals(); check(!m.enabled,"restore originals pauses tiling")
+                                        send("large")
+                                        later(0.5) {
+                                            m.enabled = true; m.update(screen.id) { $0.capacity = 4; $0.autoFit = true }
+                                            later(2.5) {
+                                                let frames = m.windows.compactMap { axFrame($0.element) }
+                                                check(m.effectiveTiles[screen.id] == 1 && Set(frames.map{NSStringFromRect($0)}).count == 1,"automatically stack oversized tile candidates without changing configured capacity")
+                                                check(m.configuration(screen.id).capacity == 4,"automatic fitting preserves user's maximum tile preference")
+                                                check(frames.allSatisfy { screen.area.insetBy(dx:-2,dy:-2).contains($0) },"accepted real window frames stay inside the display")
+                                                send("fullHeight")
+                                                later(0.5) {
+                                                    m.update(screen.id) { $0.layout = .automatic }; m.tidy()
+                                                    later(2) {
+                                                        let full = m.windows.compactMap { axFrame($0.element) }
+                                                        check(m.effectiveTiles[screen.id] == 4 && full.allSatisfy{abs($0.height-screen.area.height)<2},"automatic gap reduction fits full-height window minimums")
+                                                        check(m.configuration(screen.id).gap == 10,"automatic gap reduction preserves preferred spacing")
+                                                        send("replace")
+                                                        later(2.5) {
+                                                    m.refresh()
+                                                    later(0.7) {
+                                                        check(m.windows.count == 4 && m.effectiveTiles[screen.id] == 4,"automatically restore four tiles after restrictive windows close")
+                                                        check(Set(m.windows.compactMap{axFrame($0.element)}.map{NSStringFromRect($0)}).count == 4,"replacement windows occupy four distinct tiles")
+                                                        m.enabled = false; m.shutdown(); send("quit"); preferences.removePersistentDomain(forName:domain)
+                                                        print("INTEGRATION: \(count) checks, \(failures.count) failures; fixture PID \(child.processIdentifier) only")
+                                                        if child.isRunning { child.terminate() }
+                                                        exit(failures.isEmpty ? 0 : 1)
+                                                    }
+                                                        }
                                                     }
                                                 }
                                             }
@@ -223,8 +230,9 @@ func runIntegration() {
                 }
             }
         }
+        startWhenReady()
     }
-    later(35) { manager?.shutdown(); if child.isRunning { child.terminate() }; preferences.removePersistentDomain(forName:domain); print("FAIL: integration timeout"); exit(1) }
+    later(45) { manager?.shutdown(); if child.isRunning { child.terminate() }; preferences.removePersistentDomain(forName:domain); print("FAIL: integration timeout"); exit(1) }
     app.run()
     if child.isRunning { child.terminate() }
     preferences.removePersistentDomain(forName:domain)

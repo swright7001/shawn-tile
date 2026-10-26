@@ -511,3 +511,21 @@ Final isolated run: 3,983 pure assertions, 18 integration checks, 21 layout-mode
 checks and all expanded delayed/retried/ambiguous/ignored-write native checks
 passed. Final optimized release compilation and staged signature verification
 passed. Local candidate version is 0.4.3, build 10 (not a public release).
+
+### Retaining a verified arrangement
+
+The installed pilot subsequently oscillated between attempted layouts. A verified
+fallback is now retained across size-only updates, cleared by Tidy/settings or
+window/display membership changes. The discovery deadline advances after the
+last probe/retry write so CG visibility metadata can catch up with AX geometry.
+A new fixture subscribes to effective tile counts and asserts that late resizing
+does not restart the rejected four-tile layout after two tiles were verified.
+
+The expanded resize fixture passed, including that non-oscillation assertion.
+The 18 integration and 21 layout checks passed on the same implementation; pure
+checks remain 3,983. Fixture startup now waits for five discoverable child windows
+within a bounded eight-second readiness period rather than assuming startup
+finishes in two seconds. Geometry assertions are unchanged. A transient mid-run
+zero-window result was also observed; the expanded fixture passed on standalone
+rerun, and failure diagnostics now record only that fixture PID's AX/CG geometry
+and hidden state. Do not describe this as comprehensive long-run validation.

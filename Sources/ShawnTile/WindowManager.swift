@@ -20,6 +20,7 @@ final class WindowManager: ObservableObject {
     @Published var effectiveLayouts: [String:Layout] = [:]
     @Published var fittingDetails: [String:String] = [:]
     private var minimums: [String:CGSize] = [:]
+    private var fittingFallbacks: [String:FitFallback] = [:]
     private var fittedFrames: [String:[CGRect]] = [:]
     private var layoutGeneration = 0
     private var fitCheck: DispatchWorkItem?
@@ -65,7 +66,7 @@ final class WindowManager: ObservableObject {
         if let data = try? JSONEncoder().encode(settings) { preferences.set(data,forKey:"displays") }
         // Re-measure when the arrangement changes. An app's accepted size can
         // depend on its previous frame, so do not carry stale constraints over.
-        minimums = [:]
+        minimums = [:]; fittingFallbacks = [:]
         restoreFocus(); lastSignature = ""; refresh(force:true)
     }
     func exclude(_ bundle:String) {
@@ -185,6 +186,7 @@ final class WindowManager: ObservableObject {
             guard floating[w.id] == nil, let size = settledSizes[w.id] else { return false }
             return abs(w.frame.width-size.width)>4 || abs(w.frame.height-size.height)>4
         }
+        if signature != lastSignature { fittingFallbacks = [:] }
         if force || signature != lastSignature || changedSize { applyLayouts() }
         lastSignature = signature; menuChanged?()
     }
@@ -193,7 +195,8 @@ final class WindowManager: ObservableObject {
         var layout: Layout?
         var removeGap = false
     }
-    private func applyLayouts(attempt: Int = 0, fallbacks: [String:FitFallback] = [:]) {
+    private func applyLayouts(attempt: Int = 0, overrides: [String:FitFallback]? = nil) {
+        let fallbacks = overrides ?? fittingFallbacks
         guard enabled, trusted, focusedID == nil else { return }
         discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         fitCheck?.cancel(); layoutGeneration += 1; fitPending = true
@@ -291,7 +294,7 @@ final class WindowManager: ObservableObject {
                     first:firstSizes[window.id],confirmed:actual.size,written:written,before:before,probe:probeSizes[window.id])
                 if next != prior { self.minimums[window.id] = next; learned = true }
             }
-            if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1,fallbacks:fallbacks); return }
+            if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1,overrides:fallbacks); return }
             // An unresponsive probe is ambiguous. Try a larger-cell layout
             // without storing the current size as a permanent minimum. Unknown
             // responses alone must never collapse the entire display to one tile.
@@ -316,7 +319,7 @@ final class WindowManager: ObservableObject {
                     if fallback != original { alternatives[display] = fallback }
                 }
                 if alternatives != fallbacks {
-                    self.applyLayouts(attempt:attempt+1,fallbacks:alternatives); return
+                    self.applyLayouts(attempt:attempt+1,overrides:alternatives); return
                 }
             }
             for display in self.displays {
@@ -341,6 +344,7 @@ final class WindowManager: ObservableObject {
             if stacked > 0 { parts.append("\(stacked) \(stacked == 1 ? "window shares a tile" : "windows share tiles")") }
             if tooLarge > 0 { parts.append("\(tooLarge) too large for display") }
             if rejected > 0 { parts.append("\(rejected) \(rejected == 1 ? "window did" : "windows did") not reach their tiles") }
+            if rejected == 0 { self.fittingFallbacks = fallbacks }
             self.settledSizes = Dictionary(uniqueKeysWithValues:self.windows.compactMap { w in axFrame(w.element).map{(w.id,$0.size)} })
             self.status = parts.joined(separator:" · "); self.menuChanged?()
         }
@@ -364,6 +368,7 @@ final class WindowManager: ObservableObject {
                 guard unchangedWidth || unchangedHeight else { continue }
                 let probe = CGSize(width:unchangedWidth ? max(observed.width,min(area.width,observed.width+32)) : observed.width,
                                    height:unchangedHeight ? max(observed.height,min(area.height,observed.height+32)) : observed.height)
+                self.discoveryNotBefore = ProcessInfo.processInfo.systemUptime+0.6
                 if !axSetSize(window.element,probe) { retryFailures.insert(window.id) }
                 retry.append((window,target))
             }
@@ -377,6 +382,7 @@ final class WindowManager: ObservableObject {
                 guard self.enabled, self.trusted, self.focusedID == nil, NSEvent.pressedMouseButtons == 0 else {
                     self.fitPending = false; self.lastSignature = ""; self.schedule(); return
                 }
+                self.discoveryNotBefore = ProcessInfo.processInfo.systemUptime+0.6
                 for (window,target) in retry {
                     probeSizes[window.id] = axFrame(window.element)?.size
                     if !axSetSize(window.element,target.size) { retryFailures.insert(window.id) }
@@ -397,7 +403,7 @@ final class WindowManager: ObservableObject {
                                    y:($0.minY-display.area.minY)/display.area.height,
                                    width:$0.width/display.area.width,height:$0.height/display.area.height) }
     }
-    func tidy() { restoreFocus(); minimums = [:]; lastSignature = ""; refresh(force:true) }
+    func tidy() { restoreFocus(); minimums = [:]; fittingFallbacks = [:]; lastSignature = ""; refresh(force:true) }
     func toggleFocus() {
         if focusedID != nil { restoreFocus(); return }
         guard trusted, enabled, let id = activeID(), floating[id] == nil,
