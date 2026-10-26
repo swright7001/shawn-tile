@@ -1,4 +1,4 @@
-# Shawn Tile behavior specification — 0.2
+# Shawn Tile behavior specification: 0.3
 
 Personal and shareable macOS 13+ menu bar window manager, implemented in Swift using public AppKit and Accessibility APIs. Initial state is paused; the user enables automatic tiling after granting Accessibility. No remote service, license check, screenshots, key logging, or saved titles.
 
@@ -20,8 +20,25 @@ Personal and shareable macOS 13+ menu bar window manager, implemented in Swift u
 - Only visible, resizable standard windows on the active macOS Space are managed. Skip dialogs, sheets, panels, minimized/fullscreen windows, hidden applications, our windows, and excluded bundle IDs.
 - Preserve discovered order and tile membership where possible. A new window fills a free tile, otherwise shares the focused tile. Focus changes alone do not reorder tiles.
 - Reconcile on app/window lifecycle, workspace/display changes and settled size changes; a 1.5-second fallback handles missing AX notifications. Do not apply while the mouse is down, paused, or permission is missing.
+- After our own geometry writes, defer window rediscovery for 600 ms so AX
+  bounds and CG visibility metadata can settle. During that interval, new
+  commands still arrange the known window set immediately. This preserves IDs
+  and Focus across rapid capacity changes and restores; discovery resumes after
+  movement settles.
 - Focus expands the active managed window; toggling back restores saved geometry. Closing that window, pausing, excluding or floating clears Focus safely. Directional swapping uses actual fitted frames, including unequal splits and alternate arrangements.
 - Control–Option–Command + 1–4 sets the maximum on the active display. Control–Option + Z toggles Focus; F floats; grave cycles stack; brackets cycle windows; arrows swap neighboring tiles; Return makes primary; P pauses. Registration failures appear in Settings.
+- Keyboard settings lists all 15 actions separately. Edit a binding by choosing
+  Control, Option, Shift, Command and a supported key, or disable it. Include
+  Control or Command. Key labels describe US keyboard positions. Save applies
+  immediately and persists locally; Cancel changes nothing. Per-action Use
+  Default and Restore Defaults are available.
+- Reject duplicate enabled combinations before changing registrations. Register
+  exclusively so another owner's shortcut cannot silently suppress delivery.
+  If a new binding is unavailable, restore the previous registrations and leave
+  saved preferences unchanged. Existing unavailable shortcuts can be fixed one
+  at a time. Show any registration or rollback errors. Disabled actions release
+  their combination and ignore stale Carbon events. No event tap, Input
+  Monitoring, or ordinary keystroke recording is added.
 - Settings offers per-app exclusions, restoration of positions from before enabling, and launch at login. Quitting restores Focus only; ordinary tiled positions remain.
 
 ## Packaging and acceptance

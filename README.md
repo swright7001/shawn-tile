@@ -8,6 +8,7 @@ Original Swift software inspired by the public behavior of [Shoji](https://shoji
 - Automatic fitting: adjust splits and spacing, try another arrangement, and stack when fewer tiles fit
 - Per-display spacing, maximum tile count, and settings
 - Overflow stacks and keyboard window switching
+- Customizable shortcuts, disable individual actions, and restore defaults
 - Focus and restore, float windows, swap tiles, make primary
 - App exclusions, pause/resume, restore pre-tiling positions
 - Native menu bar controls and settings, optional open at login
@@ -55,7 +56,16 @@ For a host-only development build, run `./scripts/build.sh native`. Do not use i
 | Control–Option + Return | Make primary |
 | Control–Option + P | Pause / resume |
 
-Shortcuts use registered macOS hotkeys. Settings reports conflicts. It does not monitor ordinary typed keys. Window selection from the menu uses app names and transient IDs so titles need not be read.
+These are the defaults. Open **Settings → Keyboard** and click an action's
+shortcut to change its modifiers and key, or disable it. Save applies immediately
+and remembers your choice across restarts. Use Default resets that action;
+Restore Defaults resets all 15 actions. Include Control or Command. Key labels
+use US keyboard positions. Duplicate and unavailable combinations show an error;
+a failed edit keeps the previous working bindings.
+
+Shortcuts use registered macOS hotkeys with exclusive registration. Settings
+reports conflicts. It does not monitor ordinary typed keys. Window selection
+from the menu uses app names and transient IDs so titles need not be read.
 
 ## Boundaries
 
@@ -63,7 +73,7 @@ Pause while using Stage Manager or another tiling manager. Standard resizable wi
 
 This first version does not implement dimming/privacy modes, thumbnail switchers, hover bars, mouse modifier-drag swaps, shared split resizing, cross-display directional shortcuts, or automatic updates. Moving a window to another display by dragging is detected. Display settings persist, but live stack membership is rediscovered on Space changes and restart. A display is identified by its system UUID.
 
-The app keeps local preferences in `com.shawnwright.ShawnTile` (display layouts, exclusions, enabled/onboarding flags). Window geometry/references are kept in memory for restoration; window titles, documents, and screenshots are not read or saved. A 1.5-second reconciliation fallback complements Accessibility and workspace events.
+The app keeps local preferences in `com.shawnwright.ShawnTile` (display layouts, exclusions, shortcut bindings, enabled/onboarding flags). Window geometry/references are kept in memory for restoration; window titles, documents, and screenshots are not read or saved. A 1.5-second reconciliation fallback complements Accessibility and workspace events.
 
 ## REA project records
 

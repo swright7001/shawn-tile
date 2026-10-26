@@ -186,3 +186,49 @@ Finder replacement bypasses that signing step. Other Macs need their own setup.
 Independent GitHub CI passed layout/state checks, universal build, packaging and
 artifact upload for source 47c1f11:
 https://github.com/swright7001/shawn-tile/actions/runs/40254064383.
+
+### 0.3: editable shortcuts
+
+Pure checks passed **15 scenarios / 2,773 assertions**, including unique action
+IDs and default combinations, unsupported keys/modifiers, duplicate conflicts,
+disabled actions and saved preference round trips. The native editor was
+exercised in an isolated preference domain: custom Shift modifier saved and
+displayed, disabling displayed Disabled, duplicate Focus/Pause keys were rejected
+in the sheet, and per-action/global defaults restored the original binding.
+
+The keyboard fixture suite passed **83 checks, zero failures** against five
+disposable child-process windows (PID 35014). All 15 exclusive registrations
+succeeded. Discrete Carbon hotkey events exercised each handler and verified
+capacity, Focus bounds/restoration, float preservation/re-tiling, stack cycling,
+previous/next activation, primary placement, all four directional swaps, and
+pause/resume. Additional checks verified custom registration, release of the old
+combination, rejection and rollback of a deliberately reserved shortcut,
+unchanged preferences on duplicate rejection, disabling/stale-event rejection,
+reloading saved custom bindings and defaults, and resolving two startup conflicts
+one at a time. These are handler/real-window checks, not physical keyboard input.
+
+Initial fixture failures exposed transient AX/CG geometry disagreement during
+our own resizing. Discovery could drop IDs and undo Focus before metadata
+settled. A bounded 600 ms discovery grace period now preserves the known set
+while commands still apply immediately. The full keyboard fixture suite above
+passed after that correction.
+
+The existing real-window layout regression suite also passed **18 checks, zero
+failures** after the discovery correction (fixture PID 35042). This covered
+closing, minimizing/restoring, constrained window sizes, adaptive stacking,
+spacing reduction and re-expansion. The command-line test process had existing
+Accessibility authorization; no new grant was requested for these fixture runs.
+
+Targeted native UI automation did not trigger global shortcuts in either the
+old app or the isolated preview. These attempts do not establish physical-key
+delivery. The Carbon handler checks above must not be described as physical
+keypress tests; a physical-key pilot remains a separate verification gap.
+
+Both release architectures built successfully for 0.3.0. Signing the final
+bundle reused the configured identity without another prompt. The strict
+certificate-pinned continuity check passed against the installed 0.2.1 bundle.
+Installed 0.3.0 through the staged installer and confirmed the launched native
+app retained Accessibility and resumed adaptive tiling. No permission entry was
+changed. The installed Keyboard tab lists all 15 editable default bindings and
+reports successful registration. A physical Control-Option-P check was requested
+separately from the targeted automation attempts.

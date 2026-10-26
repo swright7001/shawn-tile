@@ -26,7 +26,7 @@ final class WindowManager: ObservableObject {
     @Published var runningApps: [NSRunningApplication] = []
     private(set) var windows: [ManagedWindow] = []
     private var states: [String:TileState] = [:]
-    private let preferences: UserDefaults
+    let preferences: UserDefaults
     private let onlyPID: pid_t?
     private var nextID = 0
     private var originals: [String:(AXUIElement,CGRect)] = [:]
@@ -40,6 +40,7 @@ final class WindowManager: ObservableObject {
     private var pending: DispatchWorkItem?
     private var applying = false
     private var lastSignature = ""
+    private var discoveryNotBefore: TimeInterval = 0
     var menuChanged: (() -> Void)?
 
     init(preferences: UserDefaults = .standard, onlyPID: pid_t? = nil) {
@@ -113,6 +114,17 @@ final class WindowManager: ObservableObject {
     }
     func refresh(force:Bool = false) {
         guard !applying, NSEvent.pressedMouseButtons == 0 else { return }
+        // AX geometry and CG visibility metadata settle at different times.
+        // Keep known windows during our own moves instead of dropping their IDs
+        // (and Focus state) on a transient bounds mismatch. New commands can
+        // still arrange that known set immediately while discovery catches up.
+        if ProcessInfo.processInfo.systemUptime < discoveryNotBefore {
+            if force {
+                if enabled { applyLayouts() }
+                else { status = "Paused · \(windows.count) eligible windows"; menuChanged?() }
+            }
+            schedule(); return
+        }
         trusted = AXIsProcessTrusted(); displays = connectedDisplays()
         guard trusted else { status = "Accessibility access needed"; menuChanged?(); return }
         attachObservers()
@@ -173,6 +185,7 @@ final class WindowManager: ObservableObject {
     }
     private func applyLayouts(attempt: Int = 0) {
         guard enabled, trusted, focusedID == nil else { return }
+        discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         fitCheck?.cancel(); layoutGeneration += 1; fitPending = true
         let generation = layoutGeneration
         applying = true
@@ -250,17 +263,20 @@ final class WindowManager: ObservableObject {
         focusSnapshot = Dictionary(uniqueKeysWithValues:windows.filter{$0.display == display.id}.compactMap { w in axFrame(w.element).map{(w.id,(w.element,$0))} })
         fitCheck?.cancel(); layoutGeneration += 1; fitPending = false
         focusedID = id; focusActive = true
+        discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         let frame = display.area.insetBy(dx:configuration(display.id).gap,dy:configuration(display.id).gap)
         axSetFrame(window.element,frame); activate(id)
     }
     func restoreFocus() {
         guard focusedID != nil else { return }
         focusedID = nil; focusActive = false; lastSignature = ""
+        discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         for (_,snapshot) in focusSnapshot { axSetFrame(snapshot.0,snapshot.1) }
         focusSnapshot = [:]
     }
     func restoreOriginals() {
         enabled = false
+        discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         for (_,snapshot) in originals { axSetFrame(snapshot.0,snapshot.1) }
         originals = [:]; lastSignature = ""
     }

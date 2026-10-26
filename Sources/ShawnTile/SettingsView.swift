@@ -21,6 +21,7 @@ struct LayoutPreview: View {
 }
 struct SettingsView: View {
     @ObservedObject var manager:WindowManager
+    @ObservedObject var hotKeys:HotKeys
     @State private var selected = ""
     @State private var loginEnabled = SMAppService.mainApp.status == .enabled
     @State private var loginError = ""
@@ -91,18 +92,8 @@ struct SettingsView: View {
                         }
                     }
                 }.padding(18).tabItem { Label("Exclusions",systemImage:"app.badge.checkmark") }
-                VStack(alignment:.leading,spacing:9) {
-                    shortcut("1–4 tiles","⌃⌥⌘ 1–4")
-                    shortcut("Focus / restore","⌃⌥ Z")
-                    shortcut("Float / tile window","⌃⌥ F")
-                    shortcut("Cycle stack","⌃⌥ `")
-                    shortcut("Previous / next window","⌃⌥ [ / ]")
-                    shortcut("Swap tiles","⌃⌥ Arrow keys")
-                    shortcut("Make primary","⌃⌥ Return")
-                    shortcut("Pause / resume","⌃⌥ P")
-                    Text(manager.shortcutErrors.isEmpty ? "Shortcuts registered with macOS. No keyboard recording." : manager.shortcutErrors.joined(separator:"\n"))
-                        .font(.caption).foregroundStyle(manager.shortcutErrors.isEmpty ? Color.secondary : .orange)
-                }.padding(18).tabItem { Label("Keyboard",systemImage:"keyboard") }
+                KeyboardSettings(hotKeys:hotKeys,manager:manager)
+                    .tabItem { Label("Keyboard",systemImage:"keyboard") }
                 VStack(alignment:.leading,spacing:16) {
                     Toggle("Open at login",isOn:Binding(get:{loginEnabled},set:{ value in
                         do { if value { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
@@ -114,13 +105,10 @@ struct SettingsView: View {
                     Button("Pause and restore pre-tiling positions") { manager.restoreOriginals() }
                     Text("Restores windows still visible from this session. Quit leaves ordinary tiled windows in place. Pause when using Stage Manager or another window manager.").font(.caption).foregroundStyle(.secondary)
                     Divider()
-                    Text("Shawn Tile 0.2.1 · Original software for Shawn Wright").font(.caption)
+                    Text("Shawn Tile 0.3.0 · Original software for Shawn Wright").font(.caption)
                     Text("Inspired by automatic tiling workflows. Independent of Shoji.").font(.caption).foregroundStyle(.secondary)
                 }.padding(18).tabItem { Label("General",systemImage:"gearshape") }
             }.frame(height:380)
         }.padding(24).frame(width:620).preferredColorScheme(.dark)
-    }
-    private func shortcut(_ name:String,_ keys:String) -> some View {
-        HStack { Text(name); Spacer(); Text(keys).font(.system(.body,design:.monospaced)).foregroundStyle(.cyan) }
     }
 }

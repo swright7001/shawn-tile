@@ -2,7 +2,7 @@
 set -euo pipefail
 TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
-TILE_VERSION="${TILE_VERSION:-0.2.1}"
+TILE_VERSION="${TILE_VERSION:-0.3.0}"
 TILE_ARCH="${1:-universal}"
 TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-2}"
 TILE_APP="$TILE_ROOT/dist/Shawn Tile.app"

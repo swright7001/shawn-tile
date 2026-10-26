@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     var smokeDomain:String?
     func applicationDidFinishLaunching(_ notification:Notification) {
         NSApp.setActivationPolicy(.accessory)
-        if CommandLine.arguments.contains("--smoke-test") {
+        if CommandLine.arguments.contains("--smoke-test") || CommandLine.arguments.contains("--keyboard-preview") {
             let domain = "com.shawnwright.ShawnTile.Smoke.\(UUID().uuidString)"
             smokeDomain = domain; manager = WindowManager(preferences:UserDefaults(suiteName:domain)!)
         } else { manager = WindowManager() }
@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 print("SMOKE: hotkey_handler_capacity=\(capacity); expected=1")
                 NSApp.terminate(nil)
             }
-        } else if !UserDefaults.standard.bool(forKey:"onboarded") || CommandLine.arguments.contains("--settings") {
+        } else if !UserDefaults.standard.bool(forKey:"onboarded") || CommandLine.arguments.contains("--settings") || CommandLine.arguments.contains("--keyboard-preview") {
             showSettings(); UserDefaults.standard.set(true,forKey:"onboarded")
         }
     }
@@ -42,7 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func rebuildMenu() {
         let menu = NSMenu(); menu.delegate = self
         item(manager.status,menu,enabled:false)
-        item(manager.enabled ? "Pause automatic tiling" : "Enable automatic tiling",menu,action:#selector(toggle),key:"p")
+        item(manager.enabled ? "Pause automatic tiling" : "Enable automatic tiling",menu,action:#selector(toggle))
         if !manager.trusted { item("Grant Accessibility…",menu,action:#selector(permission)) }
         menu.addItem(.separator())
         for display in manager.displays {
@@ -83,7 +83,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if settingsWindow == nil {
             let window = NSWindow(contentRect:NSRect(x:0,y:0,width:668,height:510),styleMask:[.titled,.closable,.miniaturizable],backing:.buffered,defer:false)
             window.title = "Shawn Tile"; window.isReleasedWhenClosed = false
-            window.contentView = NSHostingView(rootView:SettingsView(manager:manager)); window.center(); settingsWindow = window
+            window.contentView = NSHostingView(rootView:SettingsView(manager:manager,hotKeys:hotKeys!)); window.center(); settingsWindow = window
         }
         settingsWindow?.makeKeyAndOrderFront(nil); NSApp.activate(ignoringOtherApps:true)
     }
@@ -107,11 +107,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 }
 if CommandLine.arguments.contains("--fixture") {
     runFixture()
+} else if CommandLine.arguments.contains("--keyboard-test") {
+    runKeyboardChecks()
 } else if CommandLine.arguments.contains("--integration-test") {
     runIntegration()
 } else if CommandLine.arguments.contains("--diagnostics") {
     let displays = connectedDisplays()
-    print("Shawn Tile 0.2.1 | \(ProcessInfo.processInfo.operatingSystemVersionString)")
+    print("Shawn Tile 0.3.0 | \(ProcessInfo.processInfo.operatingSystemVersionString)")
     print("Accessibility: \(AXIsProcessTrusted()) | displays: \(displays.count)")
     for display in displays { print("\(display.name): \(display.area)") }
 } else {

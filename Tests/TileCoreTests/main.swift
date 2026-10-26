@@ -120,6 +120,43 @@ final class LayoutTests {
         let encoded = try! JSONEncoder().encode(DisplaySettings(autoFit:false))
         XCTAssertEqual(try! JSONDecoder().decode(DisplaySettings.self,from:encoded).autoFit,false)
     }
+    func testShortcutDefaultsAndValidation() {
+        let defaults = ShortcutConfiguration()
+        XCTAssertEqual(defaults.validationError,nil)
+        XCTAssertEqual(ShortcutAction.allCases.count,15)
+        XCTAssertEqual(Set(ShortcutAction.allCases.map(\.eventID)).count,15)
+        XCTAssertEqual(Set(ShortcutKey.all.map(\.code)).count,ShortcutKey.all.count)
+        for action in ShortcutAction.allCases {
+            XCTAssertEqual(defaults[action],action.defaultBinding)
+            XCTAssertEqual(defaults[action].validationError,nil)
+        }
+        XCTAssertTrue(ShortcutBinding(keyCode:999,modifiers:ShortcutBinding.control).validationError != nil)
+        XCTAssertTrue(ShortcutBinding(keyCode:0,modifiers:ShortcutBinding.shift).validationError != nil)
+        XCTAssertTrue(ShortcutBinding(keyCode:0,modifiers:ShortcutBinding.option).validationError != nil)
+        XCTAssertTrue(ShortcutBinding(keyCode:0,modifiers:UInt32.max).validationError != nil)
+    }
+    func testShortcutConflictsAndDisabling() {
+        var config = ShortcutConfiguration()
+        config[.pause] = config[.focus]
+        XCTAssertTrue(config.validationError?.contains("Focus / restore") == true)
+        config[.pause] = .disabled; config[.focus] = .disabled
+        XCTAssertEqual(config.validationError,nil)
+        XCTAssertEqual(config[.pause].label,"Disabled")
+        config.bindings.removeValue(forKey:ShortcutAction.swapDown.rawValue)
+        XCTAssertTrue(config.validationError != nil)
+        config = ShortcutConfiguration(); config.bindings["unknown"] = .disabled
+        XCTAssertTrue(config.validationError != nil)
+    }
+    func testShortcutPreferenceRoundTrip() {
+        var config = ShortcutConfiguration()
+        config[.pause].modifiers |= ShortcutBinding.shift
+        config[.focus] = .disabled
+        let data = try! JSONEncoder().encode(config)
+        let loaded = try! JSONDecoder().decode(ShortcutConfiguration.self,from:data)
+        XCTAssertEqual(loaded,config); XCTAssertEqual(loaded.validationError,nil)
+        XCTAssertEqual(loaded[.pause].label,"⌃⌥⇧ P")
+        XCTAssertEqual(loaded[.focus],.disabled)
+    }
 
 }
 
@@ -136,4 +173,7 @@ tests.testOversizedAndFixedMode()
 tests.testAdaptivePlansHonorEveryStackMember()
 tests.testLegacyPreferencesMigration()
 tests.testAdaptiveGapsBeforeFloatingOrStacking()
-print("PASS: 12 scenarios, \(checks) assertions")
+tests.testShortcutDefaultsAndValidation()
+tests.testShortcutConflictsAndDisabling()
+tests.testShortcutPreferenceRoundTrip()
+print("PASS: 15 scenarios, \(checks) assertions")

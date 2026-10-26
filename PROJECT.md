@@ -155,3 +155,14 @@ Keychain, certificate-pinned app requirements, signing continuity checks and
 staged installs. No private key in the repo, no Apple enrollment, no general
 certificate trust changes, and no Gatekeeper/TCC bypass. See docs/LOCAL-SIGNING.md
 and actual results in VERIFICATION.md.
+
+## Customizable keyboard shortcuts
+
+User requested live shortcut testing and editable bindings. Define all 15
+existing actions as saved preferences with per-action editing, disabling,
+duplicate detection and defaults. Investigate the existing Carbon registrations
+and installed Apple SDK contracts, then verify handler dispatch, actual fixture
+window effects, persistence and conflict rollback. No additional reference-product
+research or proprietary material is required. Native keypress delivery is a
+separate check from posting Carbon handler events. Record actual results and
+remaining limits in VERIFICATION.md.
