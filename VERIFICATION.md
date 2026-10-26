@@ -364,3 +364,32 @@ the candidate retained the configured local signing requirement.
 
 The existing real-window regression suite also passed **18 checks, zero failures**
 against fixture PID 50879 after regrouping was added.
+
+The packaged public 0.4.3 ZIP passed **23 installer checks**, strict signature,
+universal architecture, Info.plist version/build (0.4.3/6), exact helper-resource
+and package checksum checks. An initial keyboard rerun encountered two expected
+Screen Sharing registration conflicts because the paused installed app still
+owned those combinations. Closed that copy and reran in isolation: **89 checks,
+zero failures**, fixture PID 51354. No shortcut code change was required.
+
+Source `d39596ece61ae260e3ae620b84e26b371803bcc6` passed independent CI:
+https://github.com/swright7001/shawn-tile/actions/runs/40263083632.
+Published stable v0.4.3, then verified unauthenticated latest-release metadata
+and matching SHA-256 digests for all three public assets:
+https://github.com/swright7001/shawn-tile/releases/tag/v0.4.3.
+
+Executed a second real public update, 0.4.2 to 0.4.3, through Check for Updates,
+release notes, and Update & Restart. The installed app is 0.4.3/build 6; the
+installer log reports successful replacement and backup retention. Strict
+certificate-pinned continuity passed against the pre-update 0.4.2 snapshot.
+No Accessibility reset or Keychain approval was needed.
+
+On the actual six-window desktop, the restarted app showed four Grid tiles.
+Changed to Rows, which used two horizontal tiles for these apps' minimum sizes,
+then back to Grid: **four tiles recovered**, without Tidy or another restart.
+The saved maximum remained four and preferred spacing ten. The successful-update
+banner remained visible, Automatic tiling was on, and the Keyboard tab retained
+all saved bindings and reported successful macOS registration. Left the app on
+Grid with automatic fitting enabled. Physical portrait/multi-display hardware and
+new physical remote keystrokes remain the previously documented verification
+gaps; no claim is made that bounded regrouping finds every possible partition.

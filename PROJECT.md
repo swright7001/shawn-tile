@@ -201,3 +201,9 @@ A final desktop transition check exposed incompatible merged stacks after Rows.
 Added bounded regrouping with primary preservation and six-window pure/native
 regressions, and prepared the 0.4.3 follow-up. Final delivery is recorded in
 VERIFICATION.md.
+
+Delivered 0.4.3 after the expanded checks and independent CI passed. The real
+0.4.2-to-0.4.3 in-app update preserved signing, Accessibility and saved shortcuts.
+The ordinary six-window desktop now recovers four Grid tiles after Rows without
+Tidy or restarting. The app is left enabled on Grid. Public release assets and
+exact source/CI provenance are recorded in VERIFICATION.md.
