@@ -52,3 +52,16 @@ Quit an installed copy before the smoke run so it does not occupy this app's glo
 Public repository: https://github.com/swright7001/shawn-tile. Source tag v0.1.0 and published release: https://github.com/swright7001/shawn-tile/releases/tag/v0.1.0. DMG, ZIP and SHA256SUMS uploaded successfully; GitHub asset SHA-256 digests match the locally verified archives. Installed final app at `~/Applications/Shawn Tile.app`; native setup UI visibly shows the permission requirement and automatic tiling off. No OS permission was granted automatically.
 
 Public-sharing verification: unauthenticated GitHub API requests returned HTTP 200 for the repository (`private: false`) and latest release, listing the DMG, ZIP and SHA256SUMS. Friends can access the source and installers without a GitHub account.
+
+## Permission mismatch investigation
+
+User reported an enabled System Settings entry while the installed app remained
+blocked. Read-only native inspection confirmed both states. Restarting the same
+installed executable did not resolve it. A focused com.apple.TCC log query then
+reported “Failed to match existing code requirement” for Shawn Tile and the
+Accessibility service, with different stored and installed ad hoc code hashes.
+This establishes a stale build-specific grant for this incident, rather than
+an absent Settings toggle. The installed binary was not rebuilt or replaced.
+Recovery instructions now explain removing the stale entry and explicitly
+re-adding the exact installed app. Permission refresh awaits user authorization;
+no grant or TCC database was modified during diagnosis.

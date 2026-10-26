@@ -34,3 +34,22 @@ re-add the app in System Settings if an old grant no longer works.
 
 Uninstall: quit; disable Open at login; remove the app; remove its Accessibility
 grant. Preferences are in defaults domain com.shawnwright.ShawnTile.
+
+IF THE PERMISSION IS ON BUT THE APP STILL ASKS
+
+A previous build can leave an enabled entry that no longer matches the installed
+app's signature. Turning the old entry on is not enough in that case.
+
+1. Quit Shawn Tile using its menu-bar icon (closing Settings alone does not quit).
+2. In Privacy & Security > Accessibility / Device Control and Data Access,
+   select Shawn Tile and remove its entry using the minus / Remove button.
+3. Click Add (+) and select the exact installed Shawn Tile.app. For an install
+   made by scripts/install.sh, press Command-Shift-G in the file picker and enter
+   ~/Applications/Shawn Tile.app. A DMG install may instead be /Applications.
+4. Enable that newly added entry, authenticating if macOS asks.
+5. Reopen that same installed app and enable Automatic tiling.
+
+Do not add the copy inside the DMG or a temporary build folder. Do not rebuild or
+replace the installed app between granting permission and reopening it. Ad hoc
+signed builds can need this refresh after an update. A new permission grant
+must come from the user; the application cannot bypass macOS's check.
