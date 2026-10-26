@@ -103,3 +103,13 @@ clears learned minimums. Actual AX rejection beyond size constraints can still
 remain; retries are bounded to nine passes per layout update. Physical multiple
 monitors, older OS/Intel runtime, and a broad matrix of third-party apps remain
 outside this check set. Source and behavior changes are recorded in SPEC.md.
+
+0.2 delivery: public latest release is v0.2.0; unauthenticated GitHub release
+metadata lists all three assets with SHA-256 digests matching the verified local
+files. GitHub Actions independently passed layout/state tests, both architecture
+builds, packaging and artifact upload for source 7b19b8a:
+https://github.com/swright7001/shawn-tile/actions/runs/40250552010.
+The final packaged executable also repeated all 16 real-window checks with zero
+failures (isolated fixture PID 28088). Installation to ~/Applications completed;
+the existing 0.1 grant must be refreshed because this build has a new ad hoc
+signature. User explicitly authorized installation and the permission refresh.
