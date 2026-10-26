@@ -393,3 +393,139 @@ all saved bindings and reported successful macOS registration. Left the app on
 Grid with automatic fitting enabled. Physical portrait/multi-display hardware and
 new physical remote keystrokes remain the previously documented verification
 gaps; no claim is made that bounded regrouping finds every possible partition.
+
+## Stack-collapse repair candidate — 2026-10-26 (issue #2)
+
+Environment: MacBook, macOS 27.0.1 (26A434), one 1440×870-point usable display.
+Built using the installed Command Line Tools with
+`DEVELOPER_DIR=/Library/Developer/CommandLineTools`; full Xcode's pending license
+was not accepted or changed.
+
+- Baseline pure suite: 3,966 assertions passed.
+- New delayed-feedback regression with the extracted original learning rule:
+  failed, learning 900×600 from a still-changing response instead of no bound.
+- `swift run TileCoreChecks` after the fix: 3,979 assertions passed, including
+  delayed responses, stable constraints, lowered bounds, missing/failed samples,
+  position/smaller-size mismatch reporting and planner integration.
+- Native `--resize-feedback-test`: five disposable windows animate through
+  intermediate sizes; original WindowManager failed (exit 1), fixed manager
+  passed (exit 0), preserving four Grid tiles and matching actual frames.
+- Native `--layout-mode-test`: 21 checks passed. Its fixed 2.1-second waits were
+  insufficient for the now-confirmed multi-pass learner; checks poll actual
+  outcomes up to seven seconds, covering the nine-pass/6.3-second limit.
+- Native `--integration-test`: 18 checks passed, including automatic collapse,
+  recovery, focus/restore, exclusions, gap reduction and actual frame geometry.
+- `swift build` and `git diff --check` passed.
+
+Native fixtures manage only their child PID. The installed app was paused while
+running them. A passing fixture establishes the delayed-response defect and fix;
+it does not prove ChatGPT's real minimum dimensions or solve every laptop layout.
+Live pilot and distribution status are recorded below when completed.
+- Native `--keyboard-test`: 89 checks passed after quitting the installed copy.
+  An initial run with that copy merely paused failed registration because its
+  global hotkeys were still registered; the conflicting copy was quit and the
+  isolated suite rerun successfully.
+- Release compilation succeeded. Signing the bundle inside the File Provider
+  workspace initially failed on `com.apple.FinderInfo`; copied the generated
+  bundle without extended attributes to a temporary staging directory and ran
+  the existing signing script. Ad-hoc signing and strict verification passed.
+  No local signing identity was configured or substituted.
+
+### Real desktop pilot
+
+Ran the signed release candidate with the installed copy quit, using Auto,
+maximum 3 tiles and 4-point spacing. The candidate still settled to one tile,
+three sharing windows and two frame mismatches. Its new explanation reported:
+Arc 717×386, ChatGPT 1432×630, Tailscale 890×566 and Telegram 380×584 points
+(learned accepted dimensions, not independently verified hard minimums).
+Thus the confirmed delayed-feedback fix is **not sufficient to claim the user's
+ChatGPT case resolved**. Direct computer-use access to ChatGPT was denied by the
+host; no alternate UI automation was used to bypass that denial. Manual resizing
+is requested to distinguish an actual app minimum from ignored AX resize writes.
+The public issue stays open pending that compatibility investigation.
+
+## Follow-up after manual narrow-window confirmation — 2026-10-26
+
+Shawn confirmed that ChatGPT can be made narrower than half the display by hand.
+The earlier full-width accepted frame is not a verified width minimum.
+
+Added pre-request axis comparisons and a bounded size-only responsiveness probe
+(up to 32 points, within display dimensions), followed by one size-only retry.
+An unchanged/unresponsive axis cannot become a new inferred minimum. A responding
+probe permits learning genuine limits even when the window starts at its minimum.
+Pending probes/retries stop on pause, Focus, generation changes and mouse drags.
+
+- Pure checks: 3,983 assertions passed, including ignored width with accepted
+  height, correcting stale bounds, responsive genuine minima and planner shape.
+- Expanded native resize regression: delayed clients retain four tiles; clients
+  ignoring the first width write recover through retry; clients ignoring every
+  width write keep four planned tiles and report unmatched frames. All passed
+  in debug and final release builds.
+- Native layout modes: 21 checks passed.
+- Native integration: 18 checks passed. The initial unchanged-axis-only approach
+  failed two genuine-minimum checks and was corrected with responsiveness probes.
+  One subsequent run failed initial fixture discovery; a standalone rerun passed
+  all 18 checks without weakening assertions or changing its timeouts.
+- Final release build and staged ad-hoc signature verification passed.
+
+### Updated real desktop pilot
+
+The release candidate now reports three planned tiles (one shared), rather than
+one tile with three sharing windows. One window still fails frame verification;
+new per-app mismatch reporting identifies **ChatGPT**. This is partial progress,
+not proof of a working ChatGPT tile. Tiling was paused again. The user confirmed
+manual width reduction; manual height reduction is now being checked separately.
+The public issue and PR remain open/draft; the installed release is unchanged.
+
+### Cold-start and ambiguous-height follow-up
+
+A fresh installed launch exposed a remaining real mismatch: ChatGPT requested
+890×274 at (546,34), observed 890×600 at the same origin. The user confirmed that
+manual width reduction works but manual half-height reduction does not.
+
+Responsiveness probes now wait 350 ms before reading their result and another
+350 ms after restoring the requested size. Stable unresolved overflow can try a
+compatible Auto orientation, zero spacing for full-display constraints, and fewer
+tiles down to two, without saving ambiguous dimensions as minimums or changing
+preferences. Explicit layouts keep their shape. An alternate orientation cannot
+force one tile if the preferred plan still has multiple tiles. Animated responses
+cannot trigger this fallback. Pending explanations clear during a new fitting
+cycle, and remaining mismatches include requested/observed geometry.
+
+New fixture coverage includes an app already at its true minimum that ignores
+small height-growth probes, permanently ignored width writes, and Auto recovery
+to full-width rows. The initial count-fallback prototype interrupted animations;
+the existing delayed fixture caught it, and stable-sample gating corrected it.
+The full-height integration case required orientation/spacing trials rather than
+inventing a minimum from an unresponsive full-display-sized probe.
+
+Tests allow bounded asynchronous convergence: nine probe-bearing passes can take
+9.45 seconds, so the layout/Auto fallback assertions allow 10.5 seconds while
+checking actual outcomes. The close-window integration check waits two seconds
+instead of 0.8 because discovery may be deferred through a 1.05-second probe.
+Initial fixture-discovery and intermediate timing failures are not counted as
+passes. Native suites must run with the installed copy quit (not merely paused);
+isolated final results are recorded below.
+
+Final isolated run: 3,983 pure assertions, 18 integration checks, 21 layout-mode
+checks and all expanded delayed/retried/ambiguous/ignored-write native checks
+passed. Final optimized release compilation and staged signature verification
+passed. Local candidate version is 0.4.3, build 10 (not a public release).
+
+### Retaining a verified arrangement
+
+The installed pilot subsequently oscillated between attempted layouts. A verified
+fallback is now retained across size-only updates, cleared by Tidy/settings or
+window/display membership changes. The discovery deadline advances after the
+last probe/retry write so CG visibility metadata can catch up with AX geometry.
+A new fixture subscribes to effective tile counts and asserts that late resizing
+does not restart the rejected four-tile layout after two tiles were verified.
+
+The expanded resize fixture passed, including that non-oscillation assertion.
+The 18 integration and 21 layout checks passed on the same implementation; pure
+checks remain 3,983. Fixture startup now waits for five discoverable child windows
+within a bounded eight-second readiness period rather than assuming startup
+finishes in two seconds. Geometry assertions are unchanged. A transient mid-run
+zero-window result was also observed; the expanded fixture passed on standalone
+rerun, and failure diagnostics now record only that fixture PID's AX/CG geometry
+and hidden state. Do not describe this as comprehensive long-run validation.

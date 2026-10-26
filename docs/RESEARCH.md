@@ -68,3 +68,37 @@ checks were authored here using Apple frameworks and built-in macOS tools.
 Source authentication depends on this project's GitHub release account and TLS;
 archive digests and strict signatures provide additional integrity checks.
 Execution evidence and remaining limits are in VERIFICATION.md.
+
+## MacBook stack-collapse investigation — 2026-10-26
+
+Public 0.4.3 on a 1440×870-point usable display reported one tile with three
+stacked windows after a clean reinstall. The user reported GPT not fitting the
+grid and Tidy producing an overlapping layout. Accessibility was granted; this
+is separate from issue #1. The precise GPT client minimum is not established.
+
+Static inspection showed a single 350 ms response was learned as a minimum,
+and minimums only increased. A pure delayed-response regression failed with
+the extracted original learning rule (900×600 learned instead of no bound).
+An isolated native fixture animates AX resizing through intermediate dimensions.
+It failed against the original WindowManager and passed after stable-sample
+confirmation. This establishes a reproducible failure mechanism, not that all
+user-reported overlap has this cause. No external implementation was consulted.
+
+Follow-up: Shawn confirmed that ChatGPT can be resized manually to less than half
+his display's width while tiling is paused. The observed 1432-point width is
+therefore not a demonstrated hard minimum. The precise AX failure is still
+unconfirmed. Two identical samples cannot distinguish an ignored axis from a
+minimum; compare each axis with its pre-request value before learning it. A
+single size-only retry after an unchanged first sample avoids simultaneously
+rewriting position, without restarting an animation already making progress.
+Public Rectangle documentation was consulted for general minimum-size context
+(https://github.com/rxhanson/Rectangle); no implementation code was copied.
+
+A later manual check confirmed that ChatGPT cannot shrink below half the screen's
+height. Detailed live diagnostics exposed the specific miss: a requested
+890×274 frame at (546,34), observed 890×600 at the same origin. The width and
+position were accepted; the short height was not. An unchanged response to a small
+height probe remains ambiguous, so do not require that probe to succeed before
+trying a larger-cell arrangement. Add bounded, temporary count fallback down to
+two tiles, then verify actual frames. No new permanent bound is inferred from
+that ambiguity, and the user's maximum remains unchanged.

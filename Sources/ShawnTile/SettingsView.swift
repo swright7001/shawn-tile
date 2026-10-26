@@ -79,6 +79,9 @@ struct SettingsView: View {
                         Text("Using \(actual.rawValue.capitalized) · \(manager.effectiveTiles[current] ?? 0) tiles")
                             .font(.callout).foregroundStyle(.secondary)
                     }
+                    if manager.enabled, let explanation = manager.fittingDetails[current] {
+                        Text(explanation).font(.callout).foregroundStyle(.orange).fixedSize(horizontal:false,vertical:true)
+                    }
                     Toggle("Automatically fit windows",isOn:Binding(get:{manager.configuration(current).autoFit},set:{ value in manager.update(current){$0.autoFit=value} }))
                     Text(manager.configuration(current).layout == .automatic ? "Auto chooses the arrangement, splits and spacing that fit your apps. Extra windows stack when fewer tiles fit." : "Keeps your selected layout. Splits and spacing adapt; windows stack when their minimum sizes need more room. Choose Auto to let the arrangement change.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
                 }.padding(18) }.tabItem { Label("Layout",systemImage:"rectangle.split.2x2") }
