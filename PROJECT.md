@@ -136,4 +136,4 @@ Define/investigate/specify/build completed. See docs/RESEARCH.md for evidence, S
 
 Demonstrate: installed native Settings viewed with CUA; tile picker changed 3 → 4 → 3. Real AX integration completed 11 checks against disposable windows. Repository default: private swright7001/shawn-tile because the workspace had no remote and no destination reply arrived.
 
-2026-10-26: Shawn requested public access so friends can download and install the app. Repository and release made public; no raw research captures or local preferences included.
+Public-sharing update: Shawn requested public access so friends can download and install the app. Repository and release made public; no raw research captures or local preferences included.
