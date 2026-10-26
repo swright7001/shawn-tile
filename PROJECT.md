@@ -13,7 +13,7 @@ Working sequence: **define → investigate → specify → build → verify → 
 - One feature to investigate first: automatic tiling and overflow stacking.
 - Reference app, website, artifact, or public specification: Shoji public website, docs and interactive demo.
 - Target version, URL, or artifact digest: Shoji 1.0, https://shojimac.com/, observed 2026-10-25.
-- Intended use: personal; source available in Shawn’s selected repository.
+- Intended use: personal and public sharing; original source and installers available under the MIT License.
 - Success criteria: runnable native app, per-display layouts/stacks/focus/exclusions, passing geometry/state checks, universal install packages.
 - Out of scope: proprietary implementation/asset reuse, dimming/presentation modes, drag split editing, native Shoji parity; see SPEC.md.
 
@@ -135,3 +135,5 @@ Use our own wording, examples, recordings, visuals, and conclusions. Attribute e
 Define/investigate/specify/build completed. See docs/RESEARCH.md for evidence, SPEC.md for acceptance and deliberate limits, and VERIFICATION.md for executed checks. No native reference artifact acquired.
 
 Demonstrate: installed native Settings viewed with CUA; tile picker changed 3 → 4 → 3. Real AX integration completed 11 checks against disposable windows. Repository default: private swright7001/shawn-tile because the workspace had no remote and no destination reply arrived.
+
+2026-10-26: Shawn requested public access so friends can download and install the app. Repository and release made public; no raw research captures or local preferences included.

@@ -1,6 +1,6 @@
 # Shawn Tile
 
-A native, offline window manager for Shawn's Macs. Open an app and it joins your layout. Extra windows share a tile instead of squeezing the whole desktop.
+A native, offline window manager for macOS. Open an app and it joins your layout. Extra windows share a tile instead of squeezing the whole desktop.
 
 Original Swift software inspired by the public behavior of [Shoji](https://shojimac.com/). No Shoji code, assets, branding, or native binary included.
 

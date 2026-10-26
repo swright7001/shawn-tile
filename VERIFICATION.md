@@ -49,4 +49,4 @@ Quit an installed copy before the smoke run so it does not occupy this app's glo
 
 ## Delivery
 
-Private repository: https://github.com/swright7001/shawn-tile. Source tag v0.1.0 and published release: https://github.com/swright7001/shawn-tile/releases/tag/v0.1.0. DMG, ZIP and SHA256SUMS uploaded successfully; GitHub asset SHA-256 digests match the locally verified archives. Installed final app at `~/Applications/Shawn Tile.app`; native setup UI visibly shows the permission requirement and automatic tiling off. No OS permission was granted automatically.
+Public repository: https://github.com/swright7001/shawn-tile. Source tag v0.1.0 and published release: https://github.com/swright7001/shawn-tile/releases/tag/v0.1.0. DMG, ZIP and SHA256SUMS uploaded successfully; GitHub asset SHA-256 digests match the locally verified archives. Installed final app at `~/Applications/Shawn Tile.app`; native setup UI visibly shows the permission requirement and automatic tiling off. No OS permission was granted automatically.
