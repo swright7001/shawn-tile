@@ -4,16 +4,19 @@ import TileCore
 
 struct LayoutPreview: View {
     var config: DisplaySettings
+    var normalizedFrames: [CGRect]? = nil
     var body: some View {
         GeometryReader { geometry in
-            let frames = Geometry.frames(in:CGRect(origin:.zero,size:geometry.size),count:config.capacity,settings:config)
+            let frames = normalizedFrames.map { normalized in normalized.map { r in
+                CGRect(x:r.minX*geometry.size.width,y:r.minY*geometry.size.height,width:r.width*geometry.size.width,height:r.height*geometry.size.height)
+            } } ?? Geometry.frames(in:CGRect(origin:.zero,size:geometry.size),count:config.capacity,settings:config)
             ForEach(Array(frames.enumerated()),id:\.offset) { i,r in
                 RoundedRectangle(cornerRadius:8).fill(i == 0 ? Color.cyan.opacity(0.8) : Color.blue.opacity(0.20 + Double(i)*0.12))
                     .overlay(Text("\(i+1)").font(.system(size:18,weight:.semibold,design:.rounded)).foregroundStyle(.white))
                     .frame(width:r.width,height:r.height).position(x:r.midX,y:r.midY)
             }
         }.frame(height:150).background(Color.black.opacity(0.2)).clipShape(RoundedRectangle(cornerRadius:14))
-        .accessibilityLabel("\(config.layout.rawValue), \(config.capacity) tiles")
+        .accessibilityLabel("\(config.layout.rawValue), \(normalizedFrames?.count ?? config.capacity) tiles")
     }
 }
 struct SettingsView: View {
@@ -55,12 +58,12 @@ struct SettingsView: View {
                     Picker("Display",selection:Binding(get:{current},set:{selected=$0})) {
                         ForEach(manager.displays) { Text($0.name).tag($0.id) }
                     }
-                    LayoutPreview(config:manager.configuration(current))
+                    LayoutPreview(config:manager.configuration(current),normalizedFrames:manager.previewFrames(current))
                     HStack {
                         Picker("Layout",selection:Binding(get:{manager.configuration(current).layout},set:{ value in manager.update(current){$0.layout=value} })) {
                             ForEach(Layout.allCases,id:\.self) { Text($0.rawValue.capitalized).tag($0) }
                         }
-                        Picker("Tiles",selection:Binding(get:{manager.configuration(current).capacity},set:{ value in manager.update(current){$0.capacity=value} })) {
+                        Picker("Max tiles",selection:Binding(get:{manager.configuration(current).capacity},set:{ value in manager.update(current){$0.capacity=value} })) {
                             ForEach(1...4,id:\.self) { Text("\($0)").tag($0) }
                         }.frame(width:130)
                     }
@@ -69,7 +72,8 @@ struct SettingsView: View {
                         Slider(value:Binding(get:{manager.configuration(current).gap},set:{ value in manager.update(current){$0.gap=value} }),in:0...32,step:2)
                         Text("\(Int(manager.configuration(current).gap)) pt").monospacedDigit().frame(width:40)
                     }
-                    Text("Extra windows share the active tile. Portrait displays use rows. Display choices stay on this Mac.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+                    Toggle("Automatically fit windows",isOn:Binding(get:{manager.configuration(current).autoFit},set:{ value in manager.update(current){$0.autoFit=value} }))
+                    Text("Splits adapt to your apps. If fewer tiles fit, extra windows stack automatically. Up to \(manager.configuration(current).capacity) tiles; \(manager.effectiveTiles[current] ?? 0) currently in use.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
                 }.padding(18).tabItem { Label("Layout",systemImage:"rectangle.split.2x2") }
                 VStack(alignment:.leading,spacing:10) {
                     Text("Choose apps to leave floating").fontWeight(.semibold)
@@ -110,10 +114,10 @@ struct SettingsView: View {
                     Button("Pause and restore pre-tiling positions") { manager.restoreOriginals() }
                     Text("Restores windows still visible from this session. Quit leaves ordinary tiled windows in place. Pause when using Stage Manager or another window manager.").font(.caption).foregroundStyle(.secondary)
                     Divider()
-                    Text("Shawn Tile 0.1.0 · Original software for Shawn Wright").font(.caption)
+                    Text("Shawn Tile 0.2.0 · Original software for Shawn Wright").font(.caption)
                     Text("Inspired by automatic tiling workflows. Independent of Shoji.").font(.caption).foregroundStyle(.secondary)
                 }.padding(18).tabItem { Label("General",systemImage:"gearshape") }
-            }.frame(height:340)
+            }.frame(height:380)
         }.padding(24).frame(width:620).preferredColorScheme(.dark)
     }
     private func shortcut(_ name:String,_ keys:String) -> some View {

@@ -70,3 +70,36 @@ The app then showed six eligible windows, no permission warning, and an enabled
 Automatic tiling control. Automatic tiling was switched on and the native UI
 confirmed it running, reporting three app-imposed size constraints. The installed
 binary was not changed, and all other app permissions were left unchanged.
+
+## Version 0.2 — adaptive fitting
+
+The earlier fixed-split/minimum-size limitations describe 0.1. Version 0.2 adds
+an original size-aware planner and observed-size feedback through the existing
+public Accessibility APIs. No new permission or data collection category.
+
+- `swift run TileCoreChecks`: **11 scenarios, 2,712 assertions passed**. Includes
+  asymmetric splits, alternate orientation before collapse, automatic stack
+  collapse and recovery, every stack member's minimum, no overlapping tiles,
+  portrait/negative origins, oversized-window isolation, fixed-mode fallback and
+  migration of old preference JSON with fitting enabled.
+- Real packaged app `--integration-test`: **16 checks passed** against a child
+  process only. Existing discovery/focus/lifecycle checks still pass. Changing
+  test windows to minimums over half the usable screen caused an automatic single
+  stack while the configured maximum stayed four. Accepted frames stayed inside
+  the screen. Closing those restrictive windows and creating four small windows
+  restored four distinct tiles automatically.
+- `scripts/build.sh`: arm64 and x86_64 release builds passed with no warnings.
+- Packaged app `--smoke-test`: settings visible, menu has 14 items, zero shortcut
+  registration failures; Carbon event status 0, handler changes test capacity to 1.
+- `scripts/package.sh`: version 0.2.0 universal DMG, ZIP and SHA256SUMS produced.
+  Both architecture slices verified; strict app signature and extracted ZIP
+  signature passed; extracted executable SHA-256 equals the source executable;
+  both archive checksums passed.
+
+Minimums are learned only from successful resize operations whose accepted
+bounds exceed requested bounds. They are not exact platform-provided minimum
+metadata, and may become conservative if an app's constraints change. Tidy now
+clears learned minimums. Actual AX rejection beyond size constraints can still
+remain; retries are bounded to nine passes per layout update. Physical multiple
+monitors, older OS/Intel runtime, and a broad matrix of third-party apps remain
+outside this check set. Source and behavior changes are recorded in SPEC.md.

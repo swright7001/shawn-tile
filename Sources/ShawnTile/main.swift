@@ -111,7 +111,7 @@ if CommandLine.arguments.contains("--fixture") {
     runIntegration()
 } else if CommandLine.arguments.contains("--diagnostics") {
     let displays = connectedDisplays()
-    print("Shawn Tile 0.1.0 | \(ProcessInfo.processInfo.operatingSystemVersionString)")
+    print("Shawn Tile 0.2.0 | \(ProcessInfo.processInfo.operatingSystemVersionString)")
     print("Accessibility: \(AXIsProcessTrusted()) | displays: \(displays.count)")
     for display in displays { print("\(display.name): \(display.area)") }
 } else {

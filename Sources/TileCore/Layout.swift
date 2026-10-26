@@ -6,8 +6,17 @@ public struct DisplaySettings: Codable, Equatable {
     public var layout: Layout = .grid
     public var capacity: Int = 3
     public var gap: Double = 10
-    public init(layout: Layout = .grid, capacity: Int = 3, gap: Double = 10) {
-        self.layout = layout; self.capacity = capacity; self.gap = gap
+    public var autoFit: Bool = true
+    public init(layout: Layout = .grid, capacity: Int = 3, gap: Double = 10, autoFit: Bool = true) {
+        self.layout = layout; self.capacity = capacity; self.gap = gap; self.autoFit = autoFit
+    }
+    private enum CodingKeys: String, CodingKey { case layout, capacity, gap, autoFit }
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        layout = try values.decodeIfPresent(Layout.self, forKey: .layout) ?? .grid
+        capacity = try values.decodeIfPresent(Int.self, forKey: .capacity) ?? 3
+        gap = try values.decodeIfPresent(Double.self, forKey: .gap) ?? 10
+        autoFit = try values.decodeIfPresent(Bool.self, forKey: .autoFit) ?? true
     }
 }
 public enum Geometry {

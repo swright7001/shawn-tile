@@ -55,6 +55,60 @@ final class LayoutTests {
         XCTAssertEqual(s,before); XCTAssertEqual(s.next(in:"c",offset:-1),"e")
         s.reconcile(windows:[],capacity:0,focused:nil); XCTAssertEqual(s.tiles,[])
     }
+    func testAdaptiveSplitsAndAlternateLayout() {
+        let area = CGRect(x:0,y:0,width:1600,height:1000)
+        let plan = AdaptiveLayout.plan(in:area,windows:["a","b"],state:TileState(),minimums:["a":CGSize(width:1000,height:400),"b":CGSize(width:400,height:300)],settings:.init(gap:10),focused:nil)
+        XCTAssertEqual(plan.state.tiles.count,2); XCTAssertTrue(plan.frames[0].width >= 1000)
+        XCTAssertTrue(plan.frames[1].width >= 400); XCTAssertTrue(plan.frames[0].maxX+10 <= plan.frames[1].minX+0.01)
+        let tall = AdaptiveLayout.plan(in:area,windows:["a","b","c"],state:TileState(),minimums:Dictionary(uniqueKeysWithValues:["a","b","c"].map{($0,CGSize(width:400,height:700))}),settings:.init(gap:10),focused:nil)
+        XCTAssertEqual(tall.state.tiles.count,3); XCTAssertEqual(tall.layout,.columns)
+        XCTAssertTrue(tall.frames.allSatisfy{$0.height >= 700})
+    }
+    func testAdaptiveStackingAndRecovery() {
+        let area = CGRect(x:-1600,y:-200,width:1600,height:1000)
+        let minimums = Dictionary(uniqueKeysWithValues:["a","b","c"].map{($0,CGSize(width:900,height:600))})
+        let crowded = AdaptiveLayout.plan(in:area,windows:["a","b","c"],state:TileState(),minimums:minimums,settings:.init(gap:10),focused:"a")
+        XCTAssertEqual(crowded.state.tiles.count,1); XCTAssertEqual(crowded.state.tiles[0].count,3)
+        let recovered = AdaptiveLayout.plan(in:area,windows:["c","d","e"],state:crowded.state,minimums:minimums,settings:.init(gap:10),focused:nil)
+        XCTAssertEqual(recovered.state.tiles.count,3); XCTAssertTrue(recovered.floating.isEmpty)
+        XCTAssertEqual(Set(recovered.state.tiles.flatMap{$0}),Set(["c","d","e"]))
+    }
+    func testOversizedAndFixedMode() {
+        let area = CGRect(x:0,y:0,width:1000,height:800)
+        let mins = ["a":CGSize(width:1500,height:900)]
+        let plan = AdaptiveLayout.plan(in:area,windows:["a","b","c"],state:TileState(),minimums:mins,settings:.init(),focused:nil)
+        XCTAssertEqual(plan.floating,["a"]); XCTAssertEqual(plan.state.tiles.count,2)
+        let fixed = AdaptiveLayout.plan(in:area,windows:["a","b","c"],state:TileState(),minimums:mins,settings:.init(autoFit:false),focused:nil)
+        XCTAssertEqual(fixed.state.tiles.count,3); XCTAssertTrue(fixed.floating.isEmpty)
+        let empty = AdaptiveLayout.plan(in:.zero,windows:[],state:TileState(),minimums:[:],settings:.init(),focused:nil)
+        XCTAssertTrue(empty.frames.isEmpty)
+    }
+    func testAdaptivePlansHonorEveryStackMember() {
+        let ids = ["a","b","c","d","e","f"]
+        for area in [CGRect(x:-1300,y:0,width:1300,height:900),CGRect(x:0,y:-1400,width:900,height:1400)] {
+            for layout in Layout.allCases { for cap in 1...4 { for large in [CGSize(width:500,height:300),CGSize(width:750,height:650),CGSize(width:1200,height:900)] {
+                let minimums = Dictionary(uniqueKeysWithValues:ids.enumerated().map{($0.element,$0.offset%2 == 0 ? large : CGSize(width:250,height:200))})
+                let plan = AdaptiveLayout.plan(in:area,windows:ids,state:TileState(),minimums:minimums,settings:.init(layout:layout,capacity:cap,gap:10),focused:nil)
+                XCTAssertEqual(Set(plan.state.tiles.flatMap{$0}+plan.floating),Set(ids))
+                XCTAssertEqual(plan.state.tiles.flatMap{$0}.count+plan.floating.count,ids.count)
+                XCTAssertTrue(plan.frames.count <= cap)
+                for (slot,members) in plan.state.tiles.enumerated() {
+                    let frame = plan.frames[slot]
+                    XCTAssertTrue(area.contains(frame)); XCTAssertGreaterThan(frame.width,0); XCTAssertGreaterThan(frame.height,0)
+                    for id in members { XCTAssertTrue(frame.width+0.01 >= minimums[id]!.width); XCTAssertTrue(frame.height+0.01 >= minimums[id]!.height) }
+                    for other in plan.frames.dropFirst(slot+1) { XCTAssertTrue(frame.intersection(other).isNull || frame.intersection(other).isEmpty) }
+                }
+            } } }
+        }
+    }
+    func testLegacyPreferencesMigration() {
+        let legacy = Data(#"{"layout":"columns","capacity":2,"gap":8}"#.utf8)
+        let config = try! JSONDecoder().decode(DisplaySettings.self,from:legacy)
+        XCTAssertTrue(config.autoFit); XCTAssertEqual(config.capacity,2); XCTAssertEqual(config.layout,.columns)
+        let encoded = try! JSONEncoder().encode(DisplaySettings(autoFit:false))
+        XCTAssertEqual(try! JSONDecoder().decode(DisplaySettings.self,from:encoded).autoFit,false)
+    }
+
 }
 
 let tests = LayoutTests()
@@ -64,4 +118,9 @@ tests.testCoordinateConversionAndScreenSelection()
 tests.testOverflowUsesFocusedTileAndClosingReflows()
 tests.testCapacityShrinksAndPromotesWithoutDuplicates()
 tests.testFocusDoesNotChangeOrderAndReconcileIsIdempotent()
-print("PASS: 6 scenarios, \(checks) assertions")
+tests.testAdaptiveSplitsAndAlternateLayout()
+tests.testAdaptiveStackingAndRecovery()
+tests.testOversizedAndFixedMode()
+tests.testAdaptivePlansHonorEveryStackMember()
+tests.testLegacyPreferencesMigration()
+print("PASS: 11 scenarios, \(checks) assertions")

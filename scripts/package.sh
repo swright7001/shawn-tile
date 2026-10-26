@@ -2,7 +2,7 @@
 set -euo pipefail
 TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
-TILE_VERSION="${TILE_VERSION:-0.1.0}"
+TILE_VERSION="${TILE_VERSION:-0.2.0}"
 [[ -d 'dist/Shawn Tile.app' ]] || scripts/build.sh
 lipo 'dist/Shawn Tile.app/Contents/MacOS/ShawnTile' -verify_arch arm64 x86_64
 codesign --verify --deep --strict 'dist/Shawn Tile.app'

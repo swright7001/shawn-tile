@@ -16,6 +16,13 @@ final class WindowManager: ObservableObject {
     @Published var windowCount = 0
     @Published var focusActive = false
     @Published var shortcutErrors: [String] = []
+    @Published var effectiveTiles: [String:Int] = [:]
+    private var minimums: [String:CGSize] = [:]
+    private var fittedFrames: [String:[CGRect]] = [:]
+    private var layoutGeneration = 0
+    private var fitCheck: DispatchWorkItem?
+    private var fitPending = false
+    private var settledSizes: [String:CGSize] = [:]
     @Published var runningApps: [NSRunningApplication] = []
     private(set) var windows: [ManagedWindow] = []
     private var states: [String:TileState] = [:]
@@ -53,7 +60,7 @@ final class WindowManager: ObservableObject {
         var value = configuration(id); change(&value); value.capacity = min(4,max(1,value.capacity)); value.gap = min(32,max(0,value.gap))
         settings[id] = value
         if let data = try? JSONEncoder().encode(settings) { preferences.set(data,forKey:"displays") }
-        restoreFocus(); refresh(force:true)
+        restoreFocus(); lastSignature = ""; refresh(force:true)
     }
     func exclude(_ bundle:String) {
         restoreFocus()
@@ -148,52 +155,107 @@ final class WindowManager: ObservableObject {
         floating = floating.filter { live.contains($0.key) }
         // Bound original snapshots to the live window set (never persist AX references or titles).
         originals = originals.filter { live.contains($0.key) }
+        minimums = minimums.filter { live.contains($0.key) }
+        settledSizes = settledSizes.filter { live.contains($0.key) }
         if let id = focusedID, !live.contains(id) { restoreFocus() }
         windowCount = windows.count
         guard enabled else { status = "Paused · \(windows.count) eligible windows"; lastSignature = ""; menuChanged?(); return }
         let active = activeID()
-        let focused = active.flatMap { candidate in states.values.contains(where:{$0.slot(of:candidate) != nil}) ? candidate : nil } ?? lastActiveID
-        if let active { lastActiveID = active }
+        if let active, states.values.contains(where:{$0.slot(of:active) != nil}) { lastActiveID = active }
         let signature = windows.filter{floating[$0.id] == nil}.map { "\($0.id)@\($0.display)" }.joined(separator:"|") + displays.map{"\($0.id):\($0.area)"}.joined()
-        for display in displays {
-            var state = states[display.id] ?? TileState()
-            state.reconcile(windows:windows.filter{$0.display == display.id && floating[$0.id] == nil}.map(\.id),capacity:configuration(display.id).capacity,focused:focused)
-            states[display.id] = state
-        }
         states = states.filter { key,_ in displays.contains{$0.id == key} }
-        if force || signature != lastSignature { applyLayouts() }
+        let changedSize = !fitPending && windows.contains { w in
+            guard floating[w.id] == nil, let size = settledSizes[w.id] else { return false }
+            return abs(w.frame.width-size.width)>4 || abs(w.frame.height-size.height)>4
+        }
+        if force || signature != lastSignature || changedSize { applyLayouts() }
         lastSignature = signature; menuChanged?()
     }
-    private func applyLayouts() {
-        guard enabled, trusted else { return }
-        applying = true; defer { applying = false }
-        var rejected = 0
+    private func applyLayouts(attempt: Int = 0) {
+        guard enabled, trusted, focusedID == nil else { return }
+        fitCheck?.cancel(); layoutGeneration += 1; fitPending = true
+        let generation = layoutGeneration
+        applying = true
+        var requests: [(ManagedWindow,CGRect,Bool)] = []
+        var tooLarge = 0, tileCount = 0, stacked = 0
+        let active = activeID()
+        let focused = active.flatMap { candidate in states.values.contains(where:{$0.slot(of:candidate) != nil}) ? candidate : nil } ?? lastActiveID
         for display in displays {
-            guard let state = states[display.id] else { continue }
-            let frames = Geometry.frames(in:display.area,count:state.tiles.count,settings:configuration(display.id))
-            for (slot,ids) in state.tiles.enumerated() { for id in ids {
-                guard let window = windows.first(where:{$0.id == id}), slot < frames.count else { continue }
+            let members = windows.filter { $0.display == display.id && floating[$0.id] == nil }
+            let plan = AdaptiveLayout.plan(in:display.area, windows:members.map(\.id),
+                state:states[display.id] ?? TileState(), minimums:minimums,
+                settings:configuration(display.id), focused:focused)
+            states[display.id] = plan.state; fittedFrames[display.id] = plan.frames
+            effectiveTiles[display.id] = plan.state.tiles.count
+            tileCount += plan.state.tiles.count
+            stacked += max(0, members.count - plan.floating.count - plan.state.tiles.count)
+            tooLarge += plan.floating.count
+            for (slot,ids) in plan.state.tiles.enumerated() { for id in ids {
+                guard let window = members.first(where:{$0.id == id}) else { continue }
                 if originals[id] == nil { originals[id] = (window.element,window.frame) }
-                if focusedID != nil { continue }
-                if !axSetFrame(window.element,frames[slot]) { rejected += 1 }
-                else if let actual = axFrame(window.element), abs(actual.width-frames[slot].width)>4 || abs(actual.height-frames[slot].height)>4 { rejected += 1 }
+                let target = plan.frames[slot]
+                requests.append((window,target,axSetFrame(window.element,target)))
             } }
+            // A window larger than the entire usable display cannot share a tile.
+            // Leave its accepted size intact and center it, rather than repeatedly shrinking it.
+            for id in plan.floating {
+                guard let w = members.first(where:{$0.id == id}), let actual = axFrame(w.element) else { continue }
+                if originals[id] == nil { originals[id] = (w.element,w.frame) }
+                let centered = CGRect(x:display.area.midX-actual.width/2,y:display.area.midY-actual.height/2,width:actual.width,height:actual.height)
+                _ = axSetFrame(w.element,centered)
+            }
         }
-        status = rejected > 0 ? "Tiling · \(rejected) windows limited by their apps" : "Tiling · \(windows.count) windows across \(displays.count) displays"
+        applying = false
+        status = "Fitting windows…"
+        // Check after apps have processed their resize. At most nine passes per layout change.
+        let check = DispatchWorkItem { [weak self] in
+            guard let self, self.layoutGeneration == generation else { return }
+            self.fitPending = false
+            guard self.enabled, self.trusted, self.focusedID == nil else { return }
+            guard NSEvent.pressedMouseButtons == 0 else { self.lastSignature = ""; self.schedule(); return }
+            var learned = false, rejected = 0
+            for (window,target,written) in requests {
+                guard let actual = axFrame(window.element) else { continue }
+                let wider = actual.width > target.width + 4, taller = actual.height > target.height + 4
+                if wider || taller || !written { rejected += 1 }
+                guard written, self.configuration(window.display).autoFit else { continue }
+                let prior = self.minimums[window.id] ?? .zero
+                let next = CGSize(width:wider ? max(prior.width,actual.width) : prior.width,
+                                  height:taller ? max(prior.height,actual.height) : prior.height)
+                if next != prior { self.minimums[window.id] = next; learned = true }
+            }
+            if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1); return }
+            var parts = ["Tiling · \(tileCount) tiles"]
+            if stacked > 0 { parts.append("\(stacked) stacked") }
+            if tooLarge > 0 { parts.append("\(tooLarge) too large for display") }
+            if rejected > 0 { parts.append("\(rejected) app constraints remain") }
+            self.settledSizes = Dictionary(uniqueKeysWithValues:self.windows.compactMap { w in axFrame(w.element).map{(w.id,$0.size)} })
+            self.status = parts.joined(separator:" · "); self.menuChanged?()
+        }
+        fitCheck = check
+        DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
     }
-    func tidy() { restoreFocus(); refresh(force:true) }
+    func previewFrames(_ id:String) -> [CGRect]? {
+        guard enabled, configuration(id).autoFit, let display = displays.first(where:{$0.id == id}),
+              let frames = fittedFrames[id], !frames.isEmpty else { return nil }
+        return frames.map { CGRect(x:($0.minX-display.area.minX)/display.area.width,
+                                   y:($0.minY-display.area.minY)/display.area.height,
+                                   width:$0.width/display.area.width,height:$0.height/display.area.height) }
+    }
+    func tidy() { restoreFocus(); minimums = [:]; lastSignature = ""; refresh(force:true) }
     func toggleFocus() {
         if focusedID != nil { restoreFocus(); return }
         guard trusted, enabled, let id = activeID(), floating[id] == nil,
               let window = windows.first(where:{$0.id == id}), let display = displays.first(where:{$0.id == window.display}) else { return }
         focusSnapshot = Dictionary(uniqueKeysWithValues:windows.filter{$0.display == display.id}.compactMap { w in axFrame(w.element).map{(w.id,(w.element,$0))} })
+        fitCheck?.cancel(); layoutGeneration += 1; fitPending = false
         focusedID = id; focusActive = true
         let frame = display.area.insetBy(dx:configuration(display.id).gap,dy:configuration(display.id).gap)
         axSetFrame(window.element,frame); activate(id)
     }
     func restoreFocus() {
         guard focusedID != nil else { return }
-        focusedID = nil; focusActive = false
+        focusedID = nil; focusActive = false; lastSignature = ""
         for (_,snapshot) in focusSnapshot { axSetFrame(snapshot.0,snapshot.1) }
         focusSnapshot = [:]
     }
@@ -230,7 +292,7 @@ final class WindowManager: ObservableObject {
     }
     func swap(direction:CGPoint) {
         guard enabled, let id = activeID(), let w = windows.first(where:{$0.id == id}), let state = states[w.display], let slot = state.slot(of:id), let display = displays.first(where:{$0.id == w.display}) else { return }
-        let frames = Geometry.frames(in:display.area,count:state.tiles.count,settings:configuration(w.display))
+        let frames = fittedFrames[w.display] ?? Geometry.frames(in:display.area,count:state.tiles.count,settings:configuration(w.display))
         let origin = CGPoint(x:frames[slot].midX,y:frames[slot].midY)
         let candidates = frames.indices.filter { i in
             let dx = frames[i].midX-origin.x, dy = frames[i].midY-origin.y
@@ -244,7 +306,7 @@ final class WindowManager: ObservableObject {
         restoreFocus(); states[w.display]?.swap(id,other); applyLayouts(); activate(id)
     }
     func shutdown() {
-        timer?.invalidate(); pending?.cancel(); restoreFocus()
+        timer?.invalidate(); pending?.cancel(); fitCheck?.cancel(); layoutGeneration += 1; restoreFocus()
         for (_,o) in observers { CFRunLoopRemoveSource(CFRunLoopGetMain(),AXObserverGetRunLoopSource(o),.commonModes) }
         for t in tokens { NSWorkspace.shared.notificationCenter.removeObserver(t); NotificationCenter.default.removeObserver(t) }
     }

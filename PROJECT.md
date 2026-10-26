@@ -137,3 +137,12 @@ Define/investigate/specify/build completed. See docs/RESEARCH.md for evidence, S
 Demonstrate: installed native Settings viewed with CUA; tile picker changed 3 → 4 → 3. Real AX integration completed 11 checks against disposable windows. Repository default: private swright7001/shawn-tile because the workspace had no remote and no destination reply arrived.
 
 Public-sharing update: Shawn requested public access so friends can download and install the app. Repository and release made public; no raw research captures or local preferences included.
+
+## 0.2 adaptive fitting update
+
+User requested automatic layout changes around app size limits instead of manual
+tile-count changes. Original adaptive planner uses observed accepted dimensions,
+unequal splits, alternate orientations, stack collapse/recovery and oversized
+window isolation. Preferences migrate with fitting enabled; observed minimums
+remain in session memory. No additional reference research or proprietary code.
+See current SPEC.md and the 0.2 checks in VERIFICATION.md.

@@ -14,7 +14,7 @@ Requires macOS 13 Ventura or later. Includes Apple Silicon and Intel code.
    layouts, settings, pause, window selection, and quit.
 5. Optional: General > Open at login. Approve Login Items if macOS requests it.
 
-Control-Option-Command + 1/2/3/4: tiles on active display
+Control-Option-Command + 1/2/3/4: maximum tiles on active display
 Control-Option + Z: focus/restore
 Control-Option + F: float/tile active window
 Control-Option + `: cycle windows sharing the active tile
@@ -24,8 +24,11 @@ Control-Option + [ or ]: previous/next window
 Control-Option + P: pause/resume
 
 Pause before using Stage Manager, native edge tiling, or another window manager.
-Apps can impose minimum window sizes; Shawn Tile reports constraints and does
-not force unsupported sizes. General > Pause and restore pre-tiling positions
+Automatically fit windows is on by default. Shawn Tile adjusts split sizes and
+arrangements to the minimums your windows accept. If fewer tiles fit, it stacks
+extra windows; more tiles return when room opens up. Your tile count is a maximum.
+Tidy now forgets learned minimums and retries. A window too large for the whole
+display is centered and reported separately. General > Pause and restore pre-tiling positions
 restores still-visible windows from this session.
 
 Updates: quit the old app, replace it at the same location, and reopen. Ad hoc

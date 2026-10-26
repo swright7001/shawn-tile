@@ -29,6 +29,17 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
                     case "close": self.windows.last(where:{$0.isVisible})?.close()
                     case "minimize": self.windows.first(where:{$0.isVisible && !$0.isMiniaturized})?.miniaturize(nil)
                     case "restore": self.windows.first(where:{$0.isMiniaturized})?.deminiaturize(nil)
+                    case "large":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
+                        for window in self.windows where window.isVisible { window.minSize = NSSize(width:area.width*0.62,height:area.height*0.62) }
+                    case "replace":
+                        for window in self.windows { window.close() }
+                        self.windows = []
+                        for i in 0..<4 {
+                            let window = NSWindow(contentRect:NSRect(x:100+i*20,y:100,width:400,height:300),styleMask:[.titled,.closable,.resizable,.miniaturizable],backing:.buffered,defer:false)
+                            window.title = "Shawn Tile replacement \(i+1)"; window.minSize = NSSize(width:100,height:100); window.isReleasedWhenClosed = false
+                            window.makeKeyAndOrderFront(nil); self.windows.append(window)
+                        }
                     case "quit": NSApp.terminate(nil)
                     default: break
                     }
@@ -96,10 +107,28 @@ func runIntegration() {
                                 later(2.0) {
                                     m.refresh(force:true); check(m.windows.count == 4,"restored window rejoins")
                                     m.restoreOriginals(); check(!m.enabled,"restore originals pauses tiling")
-                                    m.shutdown(); send("quit"); preferences.removePersistentDomain(forName:domain)
-                                    print("INTEGRATION: \(count) checks, \(failures.count) failures; fixture PID \(child.processIdentifier) only")
-                                    if child.isRunning { child.terminate() }
-                                    exit(failures.isEmpty ? 0 : 1)
+                                    send("large")
+                                    later(0.5) {
+                                        m.enabled = true; m.update(screen.id) { $0.capacity = 4; $0.autoFit = true }
+                                        later(2.5) {
+                                            let frames = m.windows.compactMap { axFrame($0.element) }
+                                            check(m.effectiveTiles[screen.id] == 1 && Set(frames.map{NSStringFromRect($0)}).count == 1,"automatically stack oversized tile candidates without changing configured capacity")
+                                            check(m.configuration(screen.id).capacity == 4,"automatic fitting preserves user's maximum tile preference")
+                                            check(frames.allSatisfy { screen.area.insetBy(dx:-2,dy:-2).contains($0) },"accepted real window frames stay inside the display")
+                                            send("replace")
+                                            later(2.5) {
+                                                m.refresh()
+                                                later(0.7) {
+                                                    check(m.windows.count == 4 && m.effectiveTiles[screen.id] == 4,"automatically restore four tiles after restrictive windows close")
+                                                    check(Set(m.windows.compactMap{axFrame($0.element)}.map{NSStringFromRect($0)}).count == 4,"replacement windows occupy four distinct tiles")
+                                                    m.enabled = false; m.shutdown(); send("quit"); preferences.removePersistentDomain(forName:domain)
+                                                    print("INTEGRATION: \(count) checks, \(failures.count) failures; fixture PID \(child.processIdentifier) only")
+                                                    if child.isRunning { child.terminate() }
+                                                    exit(failures.isEmpty ? 0 : 1)
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -108,7 +137,7 @@ func runIntegration() {
             }
         }
     }
-    later(25) { manager?.shutdown(); if child.isRunning { child.terminate() }; preferences.removePersistentDomain(forName:domain); print("FAIL: integration timeout"); exit(1) }
+    later(35) { manager?.shutdown(); if child.isRunning { child.terminate() }; preferences.removePersistentDomain(forName:domain); print("FAIL: integration timeout"); exit(1) }
     app.run()
     if child.isRunning { child.terminate() }
     preferences.removePersistentDomain(forName:domain)
