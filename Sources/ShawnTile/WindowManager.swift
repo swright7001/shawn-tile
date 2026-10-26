@@ -18,6 +18,7 @@ final class WindowManager: ObservableObject {
     @Published var shortcutErrors: [String] = []
     @Published var effectiveTiles: [String:Int] = [:]
     @Published var effectiveLayouts: [String:Layout] = [:]
+    @Published var fittingDetails: [String:String] = [:]
     private var minimums: [String:CGSize] = [:]
     private var fittedFrames: [String:[CGRect]] = [:]
     private var layoutGeneration = 0
@@ -122,7 +123,7 @@ final class WindowManager: ObservableObject {
         // Keep known windows during our own moves instead of dropping their IDs
         // (and Focus state) on a transient bounds mismatch. New commands can
         // still arrange that known set immediately while discovery catches up.
-        if ProcessInfo.processInfo.systemUptime < discoveryNotBefore {
+        if fitPending || ProcessInfo.processInfo.systemUptime < discoveryNotBefore {
             if force {
                 if enabled { applyLayouts() }
                 else { status = "Paused · \(windows.count) eligible windows"; menuChanged?() }
@@ -194,6 +195,7 @@ final class WindowManager: ObservableObject {
         let generation = layoutGeneration
         applying = true
         var requests: [(ManagedWindow,CGRect,Bool)] = []
+        var firstSizes: [String:CGSize] = [:]
         var tooLarge = 0, tileCount = 0, stacked = 0
         let active = activeID()
         let focused = active.flatMap { candidate in states.values.contains(where:{$0.slot(of:candidate) != nil}) ? candidate : nil } ?? lastActiveID
@@ -225,7 +227,8 @@ final class WindowManager: ObservableObject {
         }
         applying = false
         status = "Fitting windows…"
-        // Check after apps have processed their resize. At most nine passes per layout change.
+        // Confirm a second sample before treating an accepted size as a bound.
+        // Slow/animated clients can still be shrinking at the first sample.
         let check = DispatchWorkItem { [weak self] in
             guard let self, self.layoutGeneration == generation else { return }
             self.fitPending = false
@@ -233,25 +236,46 @@ final class WindowManager: ObservableObject {
             guard NSEvent.pressedMouseButtons == 0 else { self.lastSignature = ""; self.schedule(); return }
             var learned = false, rejected = 0
             for (window,target,written) in requests {
-                guard let actual = axFrame(window.element) else { continue }
-                let wider = actual.width > target.width + 4, taller = actual.height > target.height + 4
-                if wider || taller || !written { rejected += 1 }
+                guard let actual = axFrame(window.element) else { rejected += 1; continue }
+                if !ResizeFeedback.matches(actual,target) || !written { rejected += 1 }
                 guard written, self.configuration(window.display).autoFit else { continue }
                 let prior = self.minimums[window.id] ?? .zero
-                let next = CGSize(width:wider ? max(prior.width,actual.width) : prior.width,
-                                  height:taller ? max(prior.height,actual.height) : prior.height)
+                let next = ResizeFeedback.minimum(prior:prior,target:target.size,
+                    first:firstSizes[window.id],confirmed:actual.size,written:written)
                 if next != prior { self.minimums[window.id] = next; learned = true }
             }
             if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1); return }
-            var parts = ["Tiling · \(tileCount) tiles"]
-            if stacked > 0 { parts.append("\(stacked) stacked") }
+            for display in self.displays {
+                let members = self.windows.filter { $0.display == display.id && self.floating[$0.id] == nil }
+                let count = self.effectiveTiles[display.id] ?? 0
+                if count > 0 && count < min(self.configuration(display.id).capacity,members.count) {
+                    let bounds = members.compactMap { window -> String? in
+                        guard let size = self.minimums[window.id], size.width > 0 || size.height > 0 else { return nil }
+                        let width = size.width > 0 ? String(Int(ceil(size.width))) : "?"
+                        let height = size.height > 0 ? String(Int(ceil(size.height))) : "?"
+                        return "\(window.app.localizedName ?? "App"): \(width) × \(height) pt"
+                    }
+                    self.fittingDetails[display.id] = "Only \(count) of \(self.configuration(display.id).capacity) tiles fit the observed window sizes. Stacked windows overlap in the same tile. " +
+                        (bounds.isEmpty ? "Some windows have not accepted their requested frames." : "Observed accepted sizes (? = unknown): " + bounds.joined(separator:"; "))
+                } else { self.fittingDetails[display.id] = nil }
+            }
+            var parts = ["Tiling · \(tileCount) \(tileCount == 1 ? "tile" : "tiles")"]
+            if stacked > 0 { parts.append("\(stacked) \(stacked == 1 ? "window shares a tile" : "windows share tiles")") }
             if tooLarge > 0 { parts.append("\(tooLarge) too large for display") }
-            if rejected > 0 { parts.append("\(rejected) app constraints remain") }
+            if rejected > 0 { parts.append("\(rejected) windows did not reach their tiles") }
             self.settledSizes = Dictionary(uniqueKeysWithValues:self.windows.compactMap { w in axFrame(w.element).map{(w.id,$0.size)} })
             self.status = parts.joined(separator:" · "); self.menuChanged?()
         }
-        fitCheck = check
-        DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
+        let sample = DispatchWorkItem { [weak self] in
+            guard let self, self.layoutGeneration == generation else { return }
+            firstSizes = Dictionary(uniqueKeysWithValues:requests.compactMap { window,_,_ in
+                axFrame(window.element).map { (window.id,$0.size) }
+            })
+            self.fitCheck = check
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
+        }
+        fitCheck = sample
+        DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:sample)
     }
     func previewFrames(_ id:String) -> [CGRect]? {
         guard enabled, configuration(id).autoFit, let display = displays.first(where:{$0.id == id}),

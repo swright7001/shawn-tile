@@ -77,10 +77,19 @@ func runLayoutModeChecks() {
         func next() {
             guard index < steps.count else { finish(); return }
             let step = steps[index]; index += 1; step.2()
-            DispatchQueue.main.asyncAfter(deadline:.now()+step.1) { check(step.3(),step.0); next() }
+            // Nine confirmed fitting passes can take 6.3 seconds. Assert the
+            // real final geometry, allowing bounded asynchronous convergence.
+            let deadline = ProcessInfo.processInfo.systemUptime + max(step.1, 7)
+            func verify() {
+                let valid = step.3()
+                if valid || ProcessInfo.processInfo.systemUptime >= deadline {
+                    check(valid,step.0); next()
+                } else { DispatchQueue.main.asyncAfter(deadline:.now()+0.2) { verify() } }
+            }
+            DispatchQueue.main.asyncAfter(deadline:.now()+step.1) { verify() }
         }
         DispatchQueue.main.asyncAfter(deadline:.now()+0.8) { next() }
     }
-    DispatchQueue.main.asyncAfter(deadline:.now()+45) { check(false,"layout mode timeout"); finish() }
+    DispatchQueue.main.asyncAfter(deadline:.now()+120) { check(false,"layout mode timeout"); finish() }
     app.run()
 }

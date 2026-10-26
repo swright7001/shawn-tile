@@ -207,3 +207,13 @@ Delivered 0.4.3 after the expanded checks and independent CI passed. The real
 The ordinary six-window desktop now recovers four Grid tiles after Rows without
 Tidy or restarting. The app is left enabled on Grid. Public release assets and
 exact source/CI provenance are recorded in VERIFICATION.md.
+
+## Laptop stacking investigation (issue #2)
+
+A fresh 0.4.3 installation on Shawn's laptop still collapsed the desktop into one
+tile. The original resize learner promoted intermediate app sizes into permanent
+bounds after one 350 ms observation. Added a stable second observation, downward
+correction after smaller accepted sizes, position/size mismatch reporting and
+visible per-app fitting explanations. Native animated fixtures reproduce the
+original defect and pass with the patch. Public-release and real ChatGPT pilot
+status remain separate from fixture verification; see VERIFICATION.md.

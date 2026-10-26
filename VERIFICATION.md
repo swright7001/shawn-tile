@@ -393,3 +393,53 @@ all saved bindings and reported successful macOS registration. Left the app on
 Grid with automatic fitting enabled. Physical portrait/multi-display hardware and
 new physical remote keystrokes remain the previously documented verification
 gaps; no claim is made that bounded regrouping finds every possible partition.
+
+## Stack-collapse repair candidate — 2026-10-26 (issue #2)
+
+Environment: MacBook, macOS 27.0.1 (26A434), one 1440×870-point usable display.
+Built using the installed Command Line Tools with
+`DEVELOPER_DIR=/Library/Developer/CommandLineTools`; full Xcode's pending license
+was not accepted or changed.
+
+- Baseline pure suite: 3,966 assertions passed.
+- New delayed-feedback regression with the extracted original learning rule:
+  failed, learning 900×600 from a still-changing response instead of no bound.
+- `swift run TileCoreChecks` after the fix: 3,979 assertions passed, including
+  delayed responses, stable constraints, lowered bounds, missing/failed samples,
+  position/smaller-size mismatch reporting and planner integration.
+- Native `--resize-feedback-test`: five disposable windows animate through
+  intermediate sizes; original WindowManager failed (exit 1), fixed manager
+  passed (exit 0), preserving four Grid tiles and matching actual frames.
+- Native `--layout-mode-test`: 21 checks passed. Its fixed 2.1-second waits were
+  insufficient for the now-confirmed multi-pass learner; checks poll actual
+  outcomes up to seven seconds, covering the nine-pass/6.3-second limit.
+- Native `--integration-test`: 18 checks passed, including automatic collapse,
+  recovery, focus/restore, exclusions, gap reduction and actual frame geometry.
+- `swift build` and `git diff --check` passed.
+
+Native fixtures manage only their child PID. The installed app was paused while
+running them. A passing fixture establishes the delayed-response defect and fix;
+it does not prove ChatGPT's real minimum dimensions or solve every laptop layout.
+Live pilot and distribution status are recorded below when completed.
+- Native `--keyboard-test`: 89 checks passed after quitting the installed copy.
+  An initial run with that copy merely paused failed registration because its
+  global hotkeys were still registered; the conflicting copy was quit and the
+  isolated suite rerun successfully.
+- Release compilation succeeded. Signing the bundle inside the File Provider
+  workspace initially failed on `com.apple.FinderInfo`; copied the generated
+  bundle without extended attributes to a temporary staging directory and ran
+  the existing signing script. Ad-hoc signing and strict verification passed.
+  No local signing identity was configured or substituted.
+
+### Real desktop pilot
+
+Ran the signed release candidate with the installed copy quit, using Auto,
+maximum 3 tiles and 4-point spacing. The candidate still settled to one tile,
+three sharing windows and two frame mismatches. Its new explanation reported:
+Arc 717×386, ChatGPT 1432×630, Tailscale 890×566 and Telegram 380×584 points
+(learned accepted dimensions, not independently verified hard minimums).
+Thus the confirmed delayed-feedback fix is **not sufficient to claim the user's
+ChatGPT case resolved**. Direct computer-use access to ChatGPT was denied by the
+host; no alternate UI automation was used to bypass that denial. Manual resizing
+is requested to distinguish an actual app minimum from ignored AX resize writes.
+The public issue stays open pending that compatibility investigation.

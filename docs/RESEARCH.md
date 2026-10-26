@@ -68,3 +68,18 @@ checks were authored here using Apple frameworks and built-in macOS tools.
 Source authentication depends on this project's GitHub release account and TLS;
 archive digests and strict signatures provide additional integrity checks.
 Execution evidence and remaining limits are in VERIFICATION.md.
+
+## MacBook stack-collapse investigation — 2026-10-26
+
+Public 0.4.3 on a 1440×870-point usable display reported one tile with three
+stacked windows after a clean reinstall. The user reported GPT not fitting the
+grid and Tidy producing an overlapping layout. Accessibility was granted; this
+is separate from issue #1. The precise GPT client minimum is not established.
+
+Static inspection showed a single 350 ms response was learned as a minimum,
+and minimums only increased. A pure delayed-response regression failed with
+the extracted original learning rule (900×600 learned instead of no bound).
+An isolated native fixture animates AX resizing through intermediate dimensions.
+It failed against the original WindowManager and passed after stable-sample
+confirmation. This establishes a reproducible failure mechanism, not that all
+user-reported overlap has this cause. No external implementation was consulted.

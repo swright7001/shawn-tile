@@ -134,6 +134,8 @@ if CommandLine.arguments.contains("--fixture") {
     runUpdaterChecks()
 } else if CommandLine.arguments.contains("--layout-mode-test") {
     runLayoutModeChecks()
+} else if CommandLine.arguments.contains("--resize-feedback-test") {
+    runResizeFeedbackChecksNative()
 } else if CommandLine.arguments.contains("--keyboard-test") {
     runKeyboardChecks()
 } else if CommandLine.arguments.contains("--integration-test") {

@@ -3,6 +3,27 @@
 import AppKit
 import TileCore
 
+final class DelayedFixtureWindow: NSWindow {
+    var delaysResizing = false
+    private var resizeGeneration = 0
+    override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        let size = frameRect.size
+        guard delaysResizing, size != frame.size else { super.setFrame(frameRect,display:flag); return }
+        resizeGeneration += 1
+        let generation = resizeGeneration, start = frame.size
+        // Simulate a client which acknowledges AX immediately but animates
+        // through two oversized intermediate frames before reaching the target.
+        for (delay, fraction) in [(0.2, CGFloat(0.25)), (0.5, CGFloat(0.6)), (0.85, CGFloat(1))] {
+            DispatchQueue.main.asyncAfter(deadline:.now()+delay) { [weak self] in
+                guard let self, self.resizeGeneration == generation else { return }
+                self.applySize(NSSize(width:start.width+(size.width-start.width)*fraction,
+                                      height:start.height+(size.height-start.height)*fraction))
+            }
+        }
+    }
+    private func applySize(_ size:NSSize) { super.setFrame(NSRect(origin:frame.origin,size:size),display:true) }
+}
+
 final class FixtureDelegate:NSObject,NSApplicationDelegate {
     var windows:[NSWindow] = []
     var observedSizes:[NSSize] = []
@@ -10,7 +31,7 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification:Notification) {
         NSApp.setActivationPolicy(.regular)
         for i in 0..<5 {
-            let window = NSWindow(contentRect:NSRect(x:100+i*25,y:100+i*25,width:500,height:400),styleMask:[.titled,.closable,.resizable,.miniaturizable],backing:.buffered,defer:false)
+            let window = DelayedFixtureWindow(contentRect:NSRect(x:100+i*25,y:100+i*25,width:500,height:400),styleMask:[.titled,.closable,.resizable,.miniaturizable],backing:.buffered,defer:false)
             window.title = "Shawn Tile test \(i+1)"; window.isReleasedWhenClosed = false
             window.minSize = NSSize(width:100,height:100)
             let label = NSTextField(labelWithString:"Disposable window \(i+1) — closes after verification")
@@ -26,6 +47,12 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
             DispatchQueue.main.async {
                 for command in text.split(separator:"\n") {
                     switch command {
+                    case "delayed":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1440,height:870)
+                        for window in self.windows {
+                            window.setFrame(area,display:true)
+                            (window as? DelayedFixtureWindow)?.delaysResizing = true
+                        }
                     case "close": self.windows.last(where:{$0.isVisible})?.close()
                     case "minimize": self.windows.first(where:{$0.isVisible && !$0.isMiniaturized})?.miniaturize(nil)
                     case "restore": self.windows.first(where:{$0.isMiniaturized})?.deminiaturize(nil)

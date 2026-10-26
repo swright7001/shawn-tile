@@ -98,3 +98,17 @@ Public CI stays ad hoc unless an identity is explicitly provided.
 - Cancel stops downloads/preparation, including a running signing process. On
   successful restart, show the completed version and features. Preferences and
   signing configuration remain outside the replaced bundle.
+
+## Resize feedback stability (pending layout fix)
+
+Sample accepted sizes at 350 ms and confirm them 350 ms later. Learn a bound
+only after successful geometry writes and two positive, finite measurements
+agree within four points. A moving/animating response is not a minimum. When a
+stable accepted size is smaller than a learned bound, lower the bound. Retain
+the existing nine-pass cap and keep discovery deferred while feedback is pending.
+Report actual position/size mismatches, including smaller-than-requested frames.
+When fitting collapses tiles, explain that stacked windows overlap and show
+app names plus observed bounds (unknown dimensions marked `?`). These are
+observations, not a guarantee of an app's absolute minimum. No titles/content
+are collected. Slow clients which stay unchanged through both samples can still
+require further investigation; the check does not prove every client has settled.
