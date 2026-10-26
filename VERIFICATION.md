@@ -132,3 +132,20 @@ window minimums, verify four distinct tiles remain possible using automatic gap
 reduction, and confirm the saved gap remains 10. Both architecture release builds
 passed. Packaging, architecture verification, strict source/extracted ZIP
 signatures, executable identity and DMG/ZIP SHA-256 checks passed.
+
+0.2.1 live pilot: user authorized installation and the final signature-specific
+Accessibility refresh. Re-added the exact installed ~/Applications/Shawn Tile.app
+through System Settings; other grants were unchanged. Restored preferred spacing
+to 10 via the native UI and enabled Automatic tiling with Automatically fit
+windows checked. After learning, the installed app reported **3 tiles, 2 stacked**
+for five eligible windows, with **no remaining constraint/oversized warning**.
+The preview showed automatically selected unequal columns while the saved layout
+remained Grid, maximum tiles remained 3, and preferred spacing remained 10.
+This confirms the fitting and automatic gap fallback on the user's current
+single-display desktop, in addition to the isolated fixtures. The public latest
+release is v0.2.1 and all uploaded asset digests match the verified local packages.
+
+0.2.1 independent CI passed tests, universal build, packaging and artifact upload
+for source 191e17d: https://github.com/swright7001/shawn-tile/actions/runs/40250983058.
+Native smoke check also passed: visible settings, 14 menu items, zero shortcut
+registration failures, successful Carbon test event and expected capacity change.
