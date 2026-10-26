@@ -182,3 +182,7 @@ test bundles succeeded, but persistent Always Allow authorization was not
 confirmed. Future fresh signatures may still request Keychain approval. Public
 ad hoc downloads must use the local scripted installer to preserve this identity;
 Finder replacement bypasses that signing step. Other Macs need their own setup.
+
+Independent GitHub CI passed layout/state checks, universal build, packaging and
+artifact upload for source 47c1f11:
+https://github.com/swright7001/shawn-tile/actions/runs/40254064383.
