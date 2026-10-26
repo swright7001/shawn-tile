@@ -141,6 +141,11 @@ func runKeyboardChecks() {
             if let ref = second { UnregisterEventHotKey(ref) }
             check(keys!.save(ShortcutConfiguration()) == nil,"restore defaults after conflict recovery")
         },{keys!.configuration == ShortcutConfiguration() && m.shortcutErrors.isEmpty})
+        step("register Screen Sharing preset",{
+            check(keys!.save(.screenSharing) == nil,"save Screen Sharing shortcuts")
+        },{keys!.configuration == .screenSharing && m.shortcutErrors.isEmpty})
+        event(.pause) { !m.enabled }
+        event(.pause) { m.enabled }
         var index = 0
         func next() {
             guard index < steps.count else { finish(); return }

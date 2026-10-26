@@ -34,3 +34,16 @@ Full raw captures are retained locally outside the deliverable at `../.research/
 All application code, tests, icon geometry, documentation and scripts were authored for Shawn Tile. Apple frameworks are system dependencies; no external packages. No Shoji branding, screenshots, media, code, or binary ships in this project. The behavior specification is original wording. No restricted implementation investigation or independent/clean-room implementation requirement was established; no claim of enforced clean-room separation is made.
 
 Unknowns: native Shoji behavior beyond public descriptions, long-session CPU/memory, physical multi-display/Space edge cases, other Mac's OS/hardware, Apple Developer signing availability. Our software's execution record is in VERIFICATION.md.
+
+## 0.3 shortcut API investigation
+
+Reviewed the installed Apple SDK CarbonEvents.h contracts for exclusive hotkey
+registration, application targets and the toolbox dispatcher. Cross-checked
+dispatcher usage against the HotKey author's controller:
+https://github.com/soffes/HotKey/blob/master/Sources/HotKey/HotKeysController.swift.
+This was an API usage check. No library dependency or source was incorporated.
+The app's binding model, editor, registration transactions and fixture checks
+were authored here. Physical testing through Screen Sharing established that
+Control-Shift-Command-P reached the app when the original Control-Option-P did
+not. The particular source of interception was not established. See executed
+checks and limits in VERIFICATION.md.

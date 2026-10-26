@@ -32,6 +32,9 @@ Personal and shareable macOS 13+ menu bar window manager, implemented in Swift u
   Control or Command. Key labels describe US keyboard positions. Save applies
   immediately and persists locally; Cancel changes nothing. Per-action Use
   Default and Restore Defaults are available.
+- A Screen Sharing preset applies Control-Shift-Command with each action's
+  default key, including P for pause. It is optional, validated like other edits,
+  persists locally, and can be customized or reset to the original defaults.
 - Reject duplicate enabled combinations before changing registrations. Register
   exclusively so another owner's shortcut cannot silently suppress delivery.
   If a new binding is unavailable, restore the previous registrations and leave
@@ -39,6 +42,8 @@ Personal and shareable macOS 13+ menu bar window manager, implemented in Swift u
   at a time. Show any registration or rollback errors. Disabled actions release
   their combination and ignore stale Carbon events. No event tap, Input
   Monitoring, or ordinary keystroke recording is added.
+- Install and register discrete Carbon hotkey events at the toolbox dispatcher
+  target so their delivery is independent of application menu event handling.
 - Settings offers per-app exclusions, restoration of positions from before enabling, and launch at login. Quitting restores Focus only; ordinary tiled positions remain.
 
 ## Packaging and acceptance

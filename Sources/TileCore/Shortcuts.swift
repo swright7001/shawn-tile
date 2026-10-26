@@ -101,6 +101,13 @@ public enum ShortcutAction: String, CaseIterable, Codable, Identifiable {
 public struct ShortcutConfiguration: Codable, Equatable {
     public var bindings: [String:ShortcutBinding]
     public init() { bindings = Dictionary(uniqueKeysWithValues:ShortcutAction.allCases.map { ($0.rawValue,$0.defaultBinding) }) }
+    public static var screenSharing: ShortcutConfiguration {
+        var result = ShortcutConfiguration()
+        for action in ShortcutAction.allCases {
+            result[action].modifiers = ShortcutBinding.control | ShortcutBinding.shift | ShortcutBinding.command
+        }
+        return result
+    }
     public subscript(_ action: ShortcutAction) -> ShortcutBinding {
         get { bindings[action.rawValue] ?? action.defaultBinding }
         set { bindings[action.rawValue] = newValue }

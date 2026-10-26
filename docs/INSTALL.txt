@@ -28,6 +28,9 @@ modifiers and key, then Save. You can disable individual actions, use the defaul
 for one action, or Restore Defaults for all shortcuts. Changes persist locally.
 Include Control or Command. Key names use US keyboard positions. Duplicate or
 unavailable combinations show an error and keep the previous working bindings.
+For remote use, Screen Sharing preset uses Control-Shift-Command with each
+action's usual key, including P for pause/resume. You can edit any binding after
+applying the preset, or Restore Defaults to return to the original combinations.
 
 Pause before using Stage Manager, native edge tiling, or another window manager.
 Automatically fit windows is on by default. Shawn Tile adjusts split sizes, spacing and

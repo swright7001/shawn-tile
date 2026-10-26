@@ -63,6 +63,11 @@ Restore Defaults resets all 15 actions. Include Control or Command. Key labels
 use US keyboard positions. Duplicate and unavailable combinations show an error;
 a failed edit keeps the previous working bindings.
 
+For a remote session, **Screen Sharing preset** uses Control-Shift-Command plus
+each action's usual key (Pause becomes ⌃⇧⌘P). This avoids the original Option
+combination that did not reach the app in the verified Screen Sharing session.
+You can still edit individual shortcuts or restore the original defaults.
+
 Shortcuts use registered macOS hotkeys with exclusive registration. Settings
 reports conflicts. It does not monitor ordinary typed keys. Window selection
 from the menu uses app names and transient IDs so titles need not be read.

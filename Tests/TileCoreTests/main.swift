@@ -157,6 +157,15 @@ final class LayoutTests {
         XCTAssertEqual(loaded[.pause].label,"⌃⌥⇧ P")
         XCTAssertEqual(loaded[.focus],.disabled)
     }
+    func testScreenSharingShortcuts() {
+        let config = ShortcutConfiguration.screenSharing
+        XCTAssertEqual(config.validationError,nil)
+        XCTAssertEqual(config[.pause].label,"⌃⇧⌘ P")
+        for action in ShortcutAction.allCases {
+            XCTAssertEqual(config[action].keyCode,action.defaultBinding.keyCode)
+            XCTAssertEqual(config[action].modifiers,ShortcutBinding.control | ShortcutBinding.shift | ShortcutBinding.command)
+        }
+    }
 
 }
 
@@ -176,4 +185,5 @@ tests.testAdaptiveGapsBeforeFloatingOrStacking()
 tests.testShortcutDefaultsAndValidation()
 tests.testShortcutConflictsAndDisabling()
 tests.testShortcutPreferenceRoundTrip()
-print("PASS: 15 scenarios, \(checks) assertions")
+tests.testScreenSharingShortcuts()
+print("PASS: 16 scenarios, \(checks) assertions")

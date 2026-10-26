@@ -19,7 +19,7 @@ final class HotKeys: ObservableObject {
             else { manager.shortcutErrors = ["Saved shortcuts could not be loaded. Defaults are active."] }
         }
         var type = EventTypeSpec(eventClass:OSType(kEventClassKeyboard),eventKind:UInt32(kEventHotKeyPressed))
-        let status = InstallEventHandler(GetApplicationEventTarget(), { _,event,context in
+        let status = InstallEventHandler(GetEventDispatcherTarget(), { _,event,context in
             guard let event, let context else { return OSStatus(eventNotHandledErr) }
             var id = EventHotKeyID()
             let status = GetEventParameter(event,EventParamName(kEventParamDirectObject),EventParamType(typeEventHotKeyID),nil,MemoryLayout<EventHotKeyID>.size,nil,&id)
@@ -65,7 +65,7 @@ final class HotKeys: ObservableObject {
             let binding = config[action]
             guard let key = binding.keyCode else { continue }
             var reference:EventHotKeyRef?
-            let status = RegisterEventHotKey(key,binding.modifiers,EventHotKeyID(signature:0x5354494C,id:action.eventID),GetApplicationEventTarget(),OptionBits(kEventHotKeyExclusive),&reference)
+            let status = RegisterEventHotKey(key,binding.modifiers,EventHotKeyID(signature:0x5354494C,id:action.eventID),GetEventDispatcherTarget(),OptionBits(kEventHotKeyExclusive),&reference)
             if status == noErr, let reference { refs[action.eventID] = reference }
             else {
                 let message = "\(action.title): \(binding.label) is unavailable (macOS \(status)). Choose another combination."

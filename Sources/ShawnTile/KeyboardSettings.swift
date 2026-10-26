@@ -11,6 +11,7 @@ struct KeyboardSettings: View {
             HStack {
                 Text("Choose your shortcuts").fontWeight(.semibold)
                 Spacer()
+                Button("Screen Sharing preset") { error = hotKeys.save(.screenSharing) ?? "" }
                 Button("Restore Defaults") { error = hotKeys.save(ShortcutConfiguration()) ?? "" }
             }
             ScrollView {
@@ -31,7 +32,7 @@ struct KeyboardSettings: View {
                 Text("Last shortcut: \(action.title)").font(.caption).foregroundStyle(.secondary)
             }
             if manager.shortcutErrors.isEmpty {
-                Text("Shortcuts are active across apps. No keyboard recording.").font(.caption).foregroundStyle(.secondary)
+                Text("Shortcuts registered with macOS. No keyboard recording.").font(.caption).foregroundStyle(.secondary)
             } else {
                 ScrollView {
                     Text(manager.shortcutErrors.joined(separator:"\n")).font(.caption).foregroundStyle(.orange)

@@ -222,7 +222,15 @@ Accessibility authorization; no new grant was requested for these fixture runs.
 Targeted native UI automation did not trigger global shortcuts in either the
 old app or the isolated preview. These attempts do not establish physical-key
 delivery. The Carbon handler checks above must not be described as physical
-keypress tests; a physical-key pilot remains a separate verification gap.
+keypress tests. The user subsequently reported no visible change from physical
+Control-Option-P with the application event target, and again after an installed
+candidate used the Carbon dispatcher target. The user then clarified that input
+arrived through Screen Sharing from another Mac. Changing Pause to
+Control-Shift-Command-P in the native editor produced a successful physical-key
+test: the user confirmed it paused, and the app's native state showed Automatic
+tiling off plus Last shortcut: Pause / resume. The changed binding was also read
+back from the saved app preferences. The precise interception of the original
+combination was not established; the target change alone did not resolve it.
 
 Both release architectures built successfully for 0.3.0. Signing the final
 bundle reused the configured identity without another prompt. The strict
@@ -231,4 +239,17 @@ Installed 0.3.0 through the staged installer and confirmed the launched native
 app retained Accessibility and resumed adaptive tiling. No permission entry was
 changed. The installed Keyboard tab lists all 15 editable default bindings and
 reports successful registration. A physical Control-Option-P check was requested
-separately from the targeted automation attempts.
+separately from the targeted automation attempts, with the successful remote
+session result above. The final version offers the tested modifier combination
+as an optional Screen Sharing preset for all 15 actions.
+
+Final preset/dispatcher checks passed **16 scenarios / 2,805 assertions** and
+**89 keyboard fixture checks, zero failures** (fixture PID 36635 only). This
+repeated every action and rollback scenario at the dispatcher target, registered
+all Screen Sharing combinations and exercised pause/resume under the preset.
+Both release architectures built again; final local signing reused the same
+identity without a prompt and the staged update installed successfully.
+The native relaunched app preserved the saved custom Pause binding and its
+Accessibility grant. Applied Screen Sharing preset in Keyboard settings: all
+15 rows changed to Control-Shift-Command, registration remained successful,
+and Automatic tiling was enabled again.
