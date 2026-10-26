@@ -20,10 +20,9 @@ public enum AdaptiveLayout {
             return FittedLayout(state: fixed, frames: Geometry.frames(in: area, count: fixed.tiles.count, settings: settings), layout: settings.layout, floating: [])
         }
         let gap = min(max(0, settings.gap), min(area.width, area.height) / 12)
-        let box = area.insetBy(dx: gap, dy: gap)
         let floating = windows.filter { id in
             let size = minimums[id] ?? .zero
-            return size.width > box.width + 0.01 || size.height > box.height + 0.01
+            return size.width > area.width + 0.01 || size.height > area.height + 0.01
         }
         let fitWindows = windows.filter { !floating.contains($0) }
         guard !fitWindows.isEmpty else {
@@ -42,8 +41,23 @@ public enum AdaptiveLayout {
                 }
             }
             for layout in layouts {
-                if let frames = fit(box: box, needs: needs, gap: gap, layout: layout) {
+                if let frames = fit(box: area.insetBy(dx:gap,dy:gap), needs: needs, gap: gap, layout: layout) {
                     return FittedLayout(state: candidate, frames: frames, layout: layout, floating: floating)
+                }
+            }
+            // Decorative space must not force an otherwise fitting window out of the layout.
+            // Keep the largest whole-point gap that works before reducing the tile count.
+            for layout in layouts {
+                guard fit(box:area,needs:needs,gap:0,layout:layout) != nil else { continue }
+                var low = 0, high = Int(floor(gap))
+                while low < high {
+                    let middle = (low+high+1)/2, candidateGap = CGFloat(middle)
+                    if fit(box:area.insetBy(dx:candidateGap,dy:candidateGap),needs:needs,gap:candidateGap,layout:layout) != nil { low = middle }
+                    else { high = middle-1 }
+                }
+                let fittedGap = CGFloat(low)
+                if let frames = fit(box:area.insetBy(dx:fittedGap,dy:fittedGap),needs:needs,gap:fittedGap,layout:layout) {
+                    return FittedLayout(state:candidate,frames:frames,layout:layout,floating:floating)
                 }
             }
         }

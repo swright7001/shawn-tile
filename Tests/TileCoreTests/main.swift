@@ -101,6 +101,18 @@ final class LayoutTests {
             } } }
         }
     }
+    func testAdaptiveGapsBeforeFloatingOrStacking() {
+        let area = CGRect(x:0,y:0,width:1600,height:1000)
+        let plan = AdaptiveLayout.plan(in:area,windows:["a","b","c"],state:TileState(),minimums:["a":CGSize(width:500,height:990)],settings:.init(gap:20),focused:nil)
+        XCTAssertTrue(plan.floating.isEmpty); XCTAssertEqual(plan.frames.count,3)
+        XCTAssertTrue(plan.frames[plan.state.slot(of:"a")!].height >= 990)
+        XCTAssertEqual(plan.frames[0].minY,5)
+        let fullHeight = AdaptiveLayout.plan(in:area,windows:["a","b"],state:TileState(),minimums:["a":CGSize(width:600,height:1000)],settings:.init(gap:10),focused:nil)
+        XCTAssertTrue(fullHeight.floating.isEmpty); XCTAssertEqual(fullHeight.frames.count,2)
+        XCTAssertEqual(fullHeight.frames[0].height,1000)
+        let tooBig = AdaptiveLayout.plan(in:area,windows:["a","b"],state:TileState(),minimums:["a":CGSize(width:600,height:1001)],settings:.init(gap:0),focused:nil)
+        XCTAssertEqual(tooBig.floating,["a"])
+    }
     func testLegacyPreferencesMigration() {
         let legacy = Data(#"{"layout":"columns","capacity":2,"gap":8}"#.utf8)
         let config = try! JSONDecoder().decode(DisplaySettings.self,from:legacy)
@@ -123,4 +135,5 @@ tests.testAdaptiveStackingAndRecovery()
 tests.testOversizedAndFixedMode()
 tests.testAdaptivePlansHonorEveryStackMember()
 tests.testLegacyPreferencesMigration()
-print("PASS: 11 scenarios, \(checks) assertions")
+tests.testAdaptiveGapsBeforeFloatingOrStacking()
+print("PASS: 12 scenarios, \(checks) assertions")

@@ -113,3 +113,22 @@ The final packaged executable also repeated all 16 real-window checks with zero
 failures (isolated fixture PID 28088). Installation to ~/Applications completed;
 the existing 0.1 grant must be refreshed because this build has a new ad hoc
 signature. User explicitly authorized installation and the permission refresh.
+
+### 0.2.1 — automatic spacing fallback
+
+Live installation exposed a boundary case: one of Shawn's windows fitted with
+zero spacing, but 0.2.0 classified it as too large for its padded tile area.
+Reducing spacing through the native UI removed the warning. The planner now
+checks oversized windows against the full usable display and, when no arrangement
+fits preferred gaps, searches for the largest whole-point spacing that works
+before lowering tile count. The saved preferred spacing remains unchanged.
+Regression checks cover a 990-point minimum on a 1000-point display with a
+preferred 20-point gap (fits using 5), a full-height minimum (fits with zero gap),
+and a true minimum beyond screen height (remains an explicit float).
+
+Final 0.2.1 checks: **12 scenarios / 2,726 assertions passed**, plus **18 real AX
+checks passed** (isolated fixture PID 28763). New native checks impose full-height
+window minimums, verify four distinct tiles remain possible using automatic gap
+reduction, and confirm the saved gap remains 10. Both architecture release builds
+passed. Packaging, architecture verification, strict source/extracted ZIP
+signatures, executable identity and DMG/ZIP SHA-256 checks passed.

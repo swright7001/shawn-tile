@@ -4,10 +4,11 @@ Personal and shareable macOS 13+ menu bar window manager, implemented in Swift u
 
 ## Layout and automatic fitting
 
-- Settings and the menu show each connected display. Preferred Grid, Columns, or Rows, maximum 1–4 tiles, 0–32 point gaps, and Automatically fit windows persist per display UUID.
+- Settings and the menu show each connected display. Preferred Grid, Columns, or Rows, maximum 1–4 tiles, 0–32 point preferred gaps, and Automatically fit windows persist per display UUID.
 - Automatic fitting defaults on, including when loading preferences created by 0.1. The tile count is a ceiling. It does not shrink the user's saved preference when only fewer tiles currently fit.
 - Try the preferred arrangement with equal shares. When an app accepts a larger dimension than requested, remember that dimension as a minimum for that window and adjust split ratios to satisfy all members of each stack. Do not infer minimums from a failed AX write or from an arbitrary starting window size.
 - Try alternate grid/column/row arrangements at the same count before lowering the effective number of tiles. Prefer portrait rows, but allow another arrangement when it fits more windows.
+- If no arrangement fits at the preferred spacing, reduce gaps to the largest whole-point value that fits, down to zero, before lowering tile count. Classify oversized windows against the entire usable display, not a padded box. Keep the preferred spacing saved so it returns when room permits.
 - If fewer tiles fit, merge excess windows into stacks; all stack members share a frame that meets their combined minimum requirements. A larger display, closing restrictive windows, or newly opened smaller windows can promote stacks back into separate tiles without changing the saved maximum.
 - Wait 350 ms after applying frames to measure app acceptance. Retry only when a minimum increases, with at most nine passes per layout change. Keep discovery and retry state on the main thread. Ignore intermediate sizing changes while fitting, and discard stale checks when focus/layout changes invalidate them.
 - Recheck when a managed window's accepted size changes after settling. Tidy now clears session minimums and retries, allowing app constraints that have become smaller to be rediscovered. Minimums are window-specific, in memory only, and removed when windows leave the managed set.

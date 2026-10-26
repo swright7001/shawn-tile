@@ -32,6 +32,9 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
                     case "large":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
                         for window in self.windows where window.isVisible { window.minSize = NSSize(width:area.width*0.62,height:area.height*0.62) }
+                    case "fullHeight":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1600,height:1000)
+                        for window in self.windows where window.isVisible { window.minSize = NSSize(width:100,height:area.height) }
                     case "replace":
                         for window in self.windows { window.close() }
                         self.windows = []
@@ -115,8 +118,15 @@ func runIntegration() {
                                             check(m.effectiveTiles[screen.id] == 1 && Set(frames.map{NSStringFromRect($0)}).count == 1,"automatically stack oversized tile candidates without changing configured capacity")
                                             check(m.configuration(screen.id).capacity == 4,"automatic fitting preserves user's maximum tile preference")
                                             check(frames.allSatisfy { screen.area.insetBy(dx:-2,dy:-2).contains($0) },"accepted real window frames stay inside the display")
-                                            send("replace")
-                                            later(2.5) {
+                                            send("fullHeight")
+                                            later(0.5) {
+                                                m.tidy()
+                                                later(2) {
+                                                    let full = m.windows.compactMap { axFrame($0.element) }
+                                                    check(m.effectiveTiles[screen.id] == 4 && full.allSatisfy{abs($0.height-screen.area.height)<2},"automatic gap reduction fits full-height window minimums")
+                                                    check(m.configuration(screen.id).gap == 10,"automatic gap reduction preserves preferred spacing")
+                                                    send("replace")
+                                                    later(2.5) {
                                                 m.refresh()
                                                 later(0.7) {
                                                     check(m.windows.count == 4 && m.effectiveTiles[screen.id] == 4,"automatically restore four tiles after restrictive windows close")
@@ -125,6 +135,8 @@ func runIntegration() {
                                                     print("INTEGRATION: \(count) checks, \(failures.count) failures; fixture PID \(child.processIdentifier) only")
                                                     if child.isRunning { child.terminate() }
                                                     exit(failures.isEmpty ? 0 : 1)
+                                                }
+                                                    }
                                                 }
                                             }
                                         }

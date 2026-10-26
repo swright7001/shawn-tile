@@ -68,12 +68,12 @@ struct SettingsView: View {
                         }.frame(width:130)
                     }
                     HStack {
-                        Text("Spacing")
+                        Text("Max spacing")
                         Slider(value:Binding(get:{manager.configuration(current).gap},set:{ value in manager.update(current){$0.gap=value} }),in:0...32,step:2)
                         Text("\(Int(manager.configuration(current).gap)) pt").monospacedDigit().frame(width:40)
                     }
                     Toggle("Automatically fit windows",isOn:Binding(get:{manager.configuration(current).autoFit},set:{ value in manager.update(current){$0.autoFit=value} }))
-                    Text("Splits adapt to your apps. If fewer tiles fit, extra windows stack automatically. Up to \(manager.configuration(current).capacity) tiles; \(manager.effectiveTiles[current] ?? 0) currently in use.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
+                    Text("Splits and spacing adapt to your apps. Extra windows stack when fewer tiles fit. Up to \(manager.configuration(current).capacity) tiles; \(manager.effectiveTiles[current] ?? 0) currently in use.").font(.callout).foregroundStyle(.secondary).fixedSize(horizontal:false,vertical:true)
                 }.padding(18).tabItem { Label("Layout",systemImage:"rectangle.split.2x2") }
                 VStack(alignment:.leading,spacing:10) {
                     Text("Choose apps to leave floating").fontWeight(.semibold)
@@ -114,7 +114,7 @@ struct SettingsView: View {
                     Button("Pause and restore pre-tiling positions") { manager.restoreOriginals() }
                     Text("Restores windows still visible from this session. Quit leaves ordinary tiled windows in place. Pause when using Stage Manager or another window manager.").font(.caption).foregroundStyle(.secondary)
                     Divider()
-                    Text("Shawn Tile 0.2.0 · Original software for Shawn Wright").font(.caption)
+                    Text("Shawn Tile 0.2.1 · Original software for Shawn Wright").font(.caption)
                     Text("Inspired by automatic tiling workflows. Independent of Shoji.").font(.caption).foregroundStyle(.secondary)
                 }.padding(18).tabItem { Label("General",systemImage:"gearshape") }
             }.frame(height:380)

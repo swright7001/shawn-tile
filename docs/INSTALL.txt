@@ -24,7 +24,7 @@ Control-Option + [ or ]: previous/next window
 Control-Option + P: pause/resume
 
 Pause before using Stage Manager, native edge tiling, or another window manager.
-Automatically fit windows is on by default. Shawn Tile adjusts split sizes and
+Automatically fit windows is on by default. Shawn Tile adjusts split sizes, spacing and
 arrangements to the minimums your windows accept. If fewer tiles fit, it stacks
 extra windows; more tiles return when room opens up. Your tile count is a maximum.
 Tidy now forgets learned minimums and retries. A window too large for the whole

@@ -5,7 +5,7 @@ A native, offline window manager for macOS. Open an app and it joins your layout
 Original Swift software inspired by the public behavior of [Shoji](https://shojimac.com/). No Shoji code, assets, branding, or native binary included.
 
 - Grid, columns, and rows, with one to four tiles per display
-- Automatic fitting: adjust splits, try another arrangement, and stack when fewer tiles fit
+- Automatic fitting: adjust splits and spacing, try another arrangement, and stack when fewer tiles fit
 - Per-display spacing, maximum tile count, and settings
 - Overflow stacks and keyboard window switching
 - Focus and restore, float windows, swap tiles, make primary
@@ -59,7 +59,7 @@ Shortcuts use registered macOS hotkeys. Settings reports conflicts. It does not 
 
 ## Boundaries
 
-Pause while using Stage Manager or another tiling manager. Standard resizable windows on the active Space are eligible; sheets, dialogs, fullscreen/minimized windows, hidden apps, and exclusions are skipped. With automatic fitting on (the default), Shawn Tile learns dimensions your windows reject, adjusts split ratios and arrangements, and stacks windows if fewer tiles fit. The saved tile count is a maximum. Closing restrictive windows or adding display space restores more tiles automatically. Tidy now clears learned bounds and retries. Bounds stay in memory for the current windows; a window larger than the entire usable display is centered and reported separately. Turn off Automatically fit windows for fixed layouts.
+Pause while using Stage Manager or another tiling manager. Standard resizable windows on the active Space are eligible; sheets, dialogs, fullscreen/minimized windows, hidden apps, and exclusions are skipped. With automatic fitting on (the default), Shawn Tile learns dimensions your windows reject, adjusts split ratios and arrangements, reduces gaps only as needed, and stacks windows if fewer tiles fit. The saved tile count is a maximum. Closing restrictive windows or adding display space restores more tiles automatically. Tidy now clears learned bounds and retries. Bounds stay in memory for the current windows; a window larger than the entire usable display is centered and reported separately. Turn off Automatically fit windows for fixed layouts.
 
 This first version does not implement dimming/privacy modes, thumbnail switchers, hover bars, mouse modifier-drag swaps, shared split resizing, cross-display directional shortcuts, or automatic updates. Moving a window to another display by dragging is detected. Display settings persist, but live stack membership is rediscovered on Space changes and restart. A display is identified by its system UUID.
 
