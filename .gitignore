@@ -3,3 +3,11 @@ dist/
 .DS_Store
 .swiftpm/
 *.log
+
+# Signing keys and local identity data never belong in source control.
+*.p12
+*.pfx
+*.key
+.local/
+__pycache__/
+*.pyc

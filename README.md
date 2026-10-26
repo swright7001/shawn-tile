@@ -32,7 +32,7 @@ swift run TileCoreChecks
 ./scripts/install.sh
 ```
 
-`build.sh` produces an ad hoc signed universal app in `dist/Shawn Tile.app`. `install.sh` copies it into `~/Applications`, preserves an existing version as a dated backup, and opens Settings. Quit the app before updating.
+`build.sh` produces a universal app (ad hoc signed until local signing is configured) in `dist/Shawn Tile.app`. `install.sh` copies it into `~/Applications`, preserves an existing version as a dated backup, and opens Settings. Quit the app before updating.
 
 ```sh
 ./scripts/package.sh
@@ -40,7 +40,7 @@ swift run TileCoreChecks
 
 Packaging creates a DMG, ZIP and SHA-256 sums in `dist/`. Copy the DMG to your other Mac. To verify a download, run `shasum -a 256 -c SHA256SUMS` beside both packages. GitHub Actions also builds installable artifacts for `main`, PRs, tags and manual runs. CI artifacts are under the workflow run's Artifacts section; releases are separate.
 
-For a host-only development build, run `./scripts/build.sh native`. Do not use its result for a universal release. To sign with an existing Developer ID instead, set `TILE_SIGN_IDENTITY`; notarization is a separate process and is not automated here. Ad hoc app updates can require re-granting Accessibility.
+For a host-only development build, run `./scripts/build.sh native`. Do not use its result for a universal release. To sign with an existing Developer ID instead, set `TILE_SIGN_IDENTITY`; notarization is a separate process and is not automated here. Ad hoc app updates can require re-granting Accessibility. For free local updates that retain one signer identity, follow [Local signing](docs/LOCAL-SIGNING.md). After setup, local builds and scripted installs reuse the Keychain certificate; the first switch needs one Accessibility refresh.
 
 ## Keyboard
 

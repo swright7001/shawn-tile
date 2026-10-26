@@ -33,3 +33,16 @@ Acceptance: pure planner tests verify bounds, non-overlap, minimums for every st
 ## Limits
 
 No private Space identifiers, Stage Manager coordination, dragged split resizing, modifier-drag swaps, hover controls, thumbnails, dimming/privacy overlays or update service. Space membership uses public on-screen window metadata. Display settings persist; live stacks and minimums are rediscovered after restart/Space changes. Learned bounds may require Tidy now if an existing app lowers its minimum without producing a size-change event. Unsupported or slow AX clients can still reject operations; retries remain bounded.
+
+## Persistent local update identity
+
+Optional free local signing reuses a user-created code-signing certificate from
+the login Keychain. Require both `com.shawnwright.ShawnTile` and the exact leaf
+certificate fingerprint in the signed designated requirement. No identifier-only
+requirement, hash-only build pin, general root trust override, or TCC modification.
+Local metadata contains only the public fingerprint; key material stays in
+Keychain. Once configured, builds and scripted installs must reuse that identity
+and fail if it is unavailable. Stage and sign updates before moving the installed
+app. One initial permission refresh is required when migrating from ad hoc; verify
+retention across two distinct signed bundles before claiming the issue is fixed.
+Public CI stays ad hoc unless an identity is explicitly provided.

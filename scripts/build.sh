@@ -4,6 +4,7 @@ TILE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$TILE_ROOT"
 TILE_VERSION="${TILE_VERSION:-0.2.1}"
 TILE_ARCH="${1:-universal}"
+TILE_BUILD_VERSION="${TILE_BUILD_VERSION:-2}"
 TILE_APP="$TILE_ROOT/dist/Shawn Tile.app"
 mkdir -p "$TILE_APP/Contents/MacOS" "$TILE_APP/Contents/Resources"
 if [[ "$TILE_ARCH" == universal ]]; then
@@ -24,7 +25,7 @@ cat > "$TILE_APP/Contents/Info.plist" <<PLIST
 <key>CFBundleDisplayName</key><string>Shawn Tile</string>
 <key>CFBundlePackageType</key><string>APPL</string>
 <key>CFBundleShortVersionString</key><string>$TILE_VERSION</string>
-<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleVersion</key><string>$TILE_BUILD_VERSION</string>
 <key>LSMinimumSystemVersion</key><string>13.0</string>
 <key>LSUIElement</key><true/>
 <key>NSHighResolutionCapable</key><true/>
@@ -35,6 +36,5 @@ PLIST
 swift scripts/icon.swift "$TILE_ROOT/dist/AppIcon.iconset"
 iconutil -c icns "$TILE_ROOT/dist/AppIcon.iconset" -o "$TILE_APP/Contents/Resources/AppIcon.icns"
 cp LICENSE "$TILE_APP/Contents/Resources/LICENSE"
-codesign --force --sign "${TILE_SIGN_IDENTITY:--}" --identifier com.shawnwright.ShawnTile "$TILE_APP"
-codesign --verify --deep --strict "$TILE_APP"
+"$TILE_ROOT/scripts/sign.sh" "$TILE_APP"
 printf 'Built %s\n' "$TILE_APP"

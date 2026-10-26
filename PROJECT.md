@@ -146,3 +146,12 @@ unequal splits, alternate orientations, stack collapse/recovery and oversized
 window isolation. Preferences migrate with fitting enabled; observed minimums
 remain in session memory. No additional reference research or proprietary code.
 See current SPEC.md and the 0.2 checks in VERIFICATION.md.
+
+## Free local signing update
+
+User requested stable Accessibility permission across updates and chose a free
+local solution. Prepare one reusable code-signing identity in the user's login
+Keychain, certificate-pinned app requirements, signing continuity checks and
+staged installs. No private key in the repo, no Apple enrollment, no general
+certificate trust changes, and no Gatekeeper/TCC bypass. See docs/LOCAL-SIGNING.md
+and actual results in VERIFICATION.md.

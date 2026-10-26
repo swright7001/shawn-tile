@@ -149,3 +149,36 @@ release is v0.2.1 and all uploaded asset digests match the verified local packag
 for source 191e17d: https://github.com/swright7001/shawn-tile/actions/runs/40250983058.
 Native smoke check also passed: visible settings, 14 menu items, zero shortcut
 registration failures, successful Carbon test event and expected capacity change.
+
+### Persistent local signing: installed update verified
+
+Created one reusable Code Signing identity in the login Keychain with explicit
+user approval. No private key was exported, no general trust override was added,
+and no Gatekeeper or TCC database bypass was used. Local configuration contains
+public identity metadata only and has mode 0600 in a mode 0700 directory.
+
+Two copies of the 0.2.1 bundle were signed with the same certificate-pinned
+designated requirement. Their Info.plist build numbers are 1 and 2, producing
+different code-directory hashes. These are distinct signed bundles, not different
+Swift implementations. Both strict signature verification and the shared
+requirement continuity check passed. Reusing a correctly signed bundle skips
+another private-key signing operation. Ad hoc continuity and an unrelated app
+identifier were rejected; an unavailable explicit identity failed without an
+ad hoc fallback. Shell syntax, Python compilation and diff whitespace checks passed.
+The updated build script also completed both release architectures with explicit
+ad hoc signing, and TileCoreChecks repeated all 12 scenarios / 2,726 assertions.
+
+Installed build 1 at the normal ~/Applications/Shawn Tile.app path, refreshed
+only Shawn Tile's Accessibility grant through System Settings with user approval,
+and confirmed the native app recognized seven eligible windows. Quit it and
+installed build 2 through the staged installer. No Accessibility setting was
+changed after that update. The relaunched app still recognized seven windows,
+accepted Automatic tiling, and settled at **3 tiles, 4 stacked** with automatic
+fitting checked and preferred spacing 10. This verifies retained permission on
+this Mac across the signed-bundle update.
+
+Keychain authorization for signing is separate from Accessibility. Signing both
+test bundles succeeded, but persistent Always Allow authorization was not
+confirmed. Future fresh signatures may still request Keychain approval. Public
+ad hoc downloads must use the local scripted installer to preserve this identity;
+Finder replacement bypasses that signing step. Other Macs need their own setup.
