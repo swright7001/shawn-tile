@@ -1,4 +1,4 @@
-SHAWN TILE — INSTALL ON ANOTHER MAC
+SHAWN TILE: INSTALL ON ANOTHER MAC
 
 Requires macOS 13 Ventura or later. Includes Apple Silicon and Intel code.
 
@@ -23,6 +23,12 @@ Control-Option + Return: make primary
 Control-Option + [ or ]: previous/next window
 Control-Option + P: pause/resume
 
+Customize these in Settings > Keyboard. Click an action's shortcut, choose its
+modifiers and key, then Save. You can disable individual actions, use the default
+for one action, or Restore Defaults for all shortcuts. Changes persist locally.
+Include Control or Command. Key names use US keyboard positions. Duplicate or
+unavailable combinations show an error and keep the previous working bindings.
+
 Pause before using Stage Manager, native edge tiling, or another window manager.
 Automatically fit windows is on by default. Shawn Tile adjusts split sizes, spacing and
 arrangements to the minimums your windows accept. If fewer tiles fit, it stacks
@@ -34,6 +40,12 @@ restores still-visible windows from this session.
 Updates: quit the old app, replace it at the same location, and reopen. Ad hoc
 signatures can require re-granting Accessibility after a rebuild. Remove and
 re-add the app in System Settings if an old grant no longer works.
+
+For free local updates that preserve one signing identity, follow:
+https://github.com/swright7001/shawn-tile/blob/main/docs/LOCAL-SIGNING.md
+After that setup, use scripts/install.sh for downloaded updates instead of
+dragging an ad hoc release over the locally signed app. Keep your private key on
+your own Mac; do not share it with friends.
 
 Uninstall: quit; disable Open at login; remove the app; remove its Accessibility
 grant. Preferences are in defaults domain com.shawnwright.ShawnTile.
