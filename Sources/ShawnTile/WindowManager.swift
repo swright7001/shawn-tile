@@ -188,7 +188,12 @@ final class WindowManager: ObservableObject {
         if force || signature != lastSignature || changedSize { applyLayouts() }
         lastSignature = signature; menuChanged?()
     }
-    private func applyLayouts(attempt: Int = 0) {
+    private struct FitFallback: Equatable {
+        var capacity: Int?
+        var layout: Layout?
+        var removeGap = false
+    }
+    private func applyLayouts(attempt: Int = 0, fallbacks: [String:FitFallback] = [:]) {
         guard enabled, trusted, focusedID == nil else { return }
         discoveryNotBefore = ProcessInfo.processInfo.systemUptime + 0.6
         fitCheck?.cancel(); layoutGeneration += 1; fitPending = true
@@ -203,9 +208,21 @@ final class WindowManager: ObservableObject {
         let focused = active.flatMap { candidate in states.values.contains(where:{$0.slot(of:candidate) != nil}) ? candidate : nil } ?? lastActiveID
         for display in displays {
             let members = windows.filter { $0.display == display.id && floating[$0.id] == nil }
-            let plan = AdaptiveLayout.plan(in:display.area, windows:members.map(\.id),
+            var candidateSettings = configuration(display.id)
+            if let fallback = fallbacks[display.id] {
+                if let capacity = fallback.capacity { candidateSettings.capacity = min(capacity,candidateSettings.capacity) }
+                if let layout = fallback.layout { candidateSettings.layout = layout }
+                if fallback.removeGap { candidateSettings.gap = 0 }
+            }
+            var plan = AdaptiveLayout.plan(in:display.area, windows:members.map(\.id),
                 state:states[display.id] ?? TileState(), minimums:minimums,
-                settings:configuration(display.id), focused:focused)
+                settings:candidateSettings, focused:focused)
+            if fallbacks[display.id]?.layout != nil && plan.state.tiles.count == 1 {
+                candidateSettings.layout = configuration(display.id).layout
+                let preferred = AdaptiveLayout.plan(in:display.area,windows:members.map(\.id),
+                    state:states[display.id] ?? TileState(),minimums:minimums,settings:candidateSettings,focused:focused)
+                if preferred.state.tiles.count > 1 { plan = preferred }
+            }
             states[display.id] = plan.state; fittedFrames[display.id] = plan.frames
             effectiveTiles[display.id] = plan.state.tiles.count
             effectiveLayouts[display.id] = plan.layout
@@ -230,6 +247,7 @@ final class WindowManager: ObservableObject {
         }
         applying = false
         status = "Fitting windows…"
+        fittingDetails = [:]
         // Confirm a second sample before treating an accepted size as a bound.
         // Slow/animated clients can still be shrinking at the first sample.
         let check = DispatchWorkItem { [weak self] in
@@ -239,20 +257,68 @@ final class WindowManager: ObservableObject {
             guard NSEvent.pressedMouseButtons == 0 else { self.lastSignature = ""; self.schedule(); return }
             var learned = false, rejected = 0
             var rejectedApps: [String:Set<String>] = [:]
-            func reject(_ window: ManagedWindow) {
+            var oversizedDisplays: Set<String> = []
+            var tallDisplays: Set<String> = []
+            var wideDisplays: Set<String> = []
+            var noGapDisplays: Set<String> = []
+            func reject(_ window: ManagedWindow, _ target: CGRect, _ actual: CGRect?) {
+                func describe(_ r: CGRect) -> String {
+                    String(format:"%.0f×%.0f at %.0f,%.0f",Double(r.width),Double(r.height),Double(r.minX),Double(r.minY))
+                }
                 rejected += 1
-                rejectedApps[window.display,default:[]].insert(window.app.localizedName ?? "App")
+                let name = window.app.localizedName ?? "App"
+                rejectedApps[window.display,default:[]].insert("\(name) (requested \(describe(target)); observed \(actual.map(describe) ?? "unavailable"))")
             }
             for (window,target,written,before) in requests {
-                guard let actual = axFrame(window.element) else { reject(window); continue }
-                if !ResizeFeedback.matches(actual,target) || !written || retryFailures.contains(window.id) { reject(window) }
+                guard let actual = axFrame(window.element) else { reject(window,target,nil); continue }
+                if !ResizeFeedback.matches(actual,target) || !written || retryFailures.contains(window.id) { reject(window,target,actual) }
+                let stable = firstSizes[window.id].map { abs($0.width-actual.width) <= 4 && abs($0.height-actual.height) <= 4 } ?? false
+                if stable && self.configuration(window.display).autoFit && (actual.width > target.width+4 || actual.height > target.height+4) {
+                    oversizedDisplays.insert(window.display)
+                    if actual.height > target.height+4 { tallDisplays.insert(window.display) }
+                    if actual.width > target.width+4 { wideDisplays.insert(window.display) }
+                    if let area = self.displays.first(where:{$0.id == window.display})?.area {
+                        let gap = self.configuration(window.display).gap
+                        if gap > 0 && ((actual.height > area.height-2*gap && actual.height <= area.height+4) ||
+                                       (actual.width > area.width-2*gap && actual.width <= area.width+4)) {
+                            noGapDisplays.insert(window.display)
+                        }
+                    }
+                }
                 guard written, !retryFailures.contains(window.id), self.configuration(window.display).autoFit else { continue }
                 let prior = self.minimums[window.id] ?? .zero
                 let next = ResizeFeedback.minimum(prior:prior,target:target.size,
                     first:firstSizes[window.id],confirmed:actual.size,written:written,before:before,probe:probeSizes[window.id])
                 if next != prior { self.minimums[window.id] = next; learned = true }
             }
-            if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1); return }
+            if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1,fallbacks:fallbacks); return }
+            // An unresponsive probe is ambiguous. Try a larger-cell layout
+            // without storing the current size as a permanent minimum. Unknown
+            // responses alone must never collapse the entire display to one tile.
+            if attempt < 8 {
+                var alternatives = fallbacks
+                for display in oversizedDisplays {
+                    var fallback = alternatives[display] ?? FitFallback()
+                    let original = fallback
+                    let config = self.configuration(display)
+                    if noGapDisplays.contains(display) { fallback.removeGap = true }
+                    if config.layout == .automatic && fallback.layout == nil {
+                        if tallDisplays.contains(display) && self.effectiveLayouts[display] != .columns {
+                            fallback.layout = .columns
+                        } else if wideDisplays.contains(display) && self.effectiveLayouts[display] != .rows {
+                            fallback.layout = .rows
+                        }
+                    }
+                    if fallback == original {
+                        let count = self.effectiveTiles[display] ?? 0
+                        if count > 2 { fallback.capacity = count-1 }
+                    }
+                    if fallback != original { alternatives[display] = fallback }
+                }
+                if alternatives != fallbacks {
+                    self.applyLayouts(attempt:attempt+1,fallbacks:alternatives); return
+                }
+            }
             for display in self.displays {
                 let members = self.windows.filter { $0.display == display.id && self.floating[$0.id] == nil }
                 let count = self.effectiveTiles[display.id] ?? 0
@@ -316,10 +382,10 @@ final class WindowManager: ObservableObject {
                     if !axSetSize(window.element,target.size) { retryFailures.insert(window.id) }
                 }
                 self.fitCheck = check
-                DispatchQueue.main.asyncAfter(deadline:.now()+0.3,execute:check)
+                DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
             }
             self.fitCheck = restore
-            DispatchQueue.main.asyncAfter(deadline:.now()+0.05,execute:restore)
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:restore)
         }
         fitCheck = sample
         DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:sample)

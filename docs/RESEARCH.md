@@ -93,3 +93,12 @@ single size-only retry after an unchanged first sample avoids simultaneously
 rewriting position, without restarting an animation already making progress.
 Public Rectangle documentation was consulted for general minimum-size context
 (https://github.com/rxhanson/Rectangle); no implementation code was copied.
+
+A later manual check confirmed that ChatGPT cannot shrink below half the screen's
+height. Detailed live diagnostics exposed the specific miss: a requested
+890×274 frame at (546,34), observed 890×600 at the same origin. The width and
+position were accepted; the short height was not. An unchanged response to a small
+height probe remains ambiguous, so do not require that probe to succeed before
+trying a larger-cell arrangement. Add bounded, temporary count fallback down to
+two tiles, then verify actual frames. No new permanent bound is inferred from
+that ambiguity, and the user's maximum remains unchanged.

@@ -6,8 +6,13 @@ import TileCore
 final class DelayedFixtureWindow: NSWindow {
     var delaysResizing = false
     var ignoredWidthRequests = 0
+    var ignoresSmallHeightGrowth = false
     private var resizeGeneration = 0
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        if ignoresSmallHeightGrowth && frameRect.height > frame.height && frameRect.height-frame.height <= 33 {
+            super.setFrame(NSRect(origin:frameRect.origin,size:NSSize(width:frameRect.width,height:frame.height)),display:flag)
+            return
+        }
         if ignoredWidthRequests > 0 && abs(frameRect.width-frame.width) > 4 {
             ignoredWidthRequests -= 1
             super.setFrame(NSRect(origin:frameRect.origin,size:NSSize(width:frame.width,height:frameRect.height)),display:flag)
@@ -53,10 +58,20 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
             DispatchQueue.main.async {
                 for command in text.split(separator:"\n") {
                     switch command {
+                    case "smallHeightProbe":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1440,height:870)
+                        for case let window as DelayedFixtureWindow in self.windows {
+                            window.delaysResizing = false; window.ignoredWidthRequests = 0
+                            window.ignoresSmallHeightGrowth = false
+                            window.minSize = NSSize(width:100,height:area.height*0.65)
+                            window.setFrame(NSRect(x:area.minX,y:area.minY,width:500,height:area.height*0.65),display:true)
+                            window.ignoresSmallHeightGrowth = true
+                        }
                     case "retry", "ignored":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1440,height:870)
                         for case let window as DelayedFixtureWindow in self.windows {
                             window.delaysResizing = false; window.ignoredWidthRequests = 0
+                            window.ignoresSmallHeightGrowth = false; window.minSize = NSSize(width:100,height:100)
                             window.setFrame(area,display:true)
                             window.ignoredWidthRequests = command == "retry" ? 1 : 100
                         }
@@ -159,7 +174,9 @@ func runIntegration() {
                         m.restoreFocus()
                         check(axFrame(m.windows.first(where:{$0.id == id})!.element) == before,"Focus restores exact prior bounds")
                         send("close")
-                        later(0.8) {
+                        // A pending responsiveness check can defer discovery for
+                        // 1.05 seconds; allow it to finish before checking removal.
+                        later(2) {
                             m.refresh(force:true); check(m.windows.count == 4,"closed window disappears and survivors reflow")
                             send("minimize")
                             later(2.0) {

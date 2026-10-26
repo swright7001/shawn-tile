@@ -77,12 +77,13 @@ func runLayoutModeChecks() {
         func next() {
             guard index < steps.count else { finish(); return }
             let step = steps[index]; index += 1; step.2()
-            // Nine confirmed fitting passes can take 6.3 seconds. Assert the
+            // Nine confirmed fitting passes with probes can take 9.45 seconds. Assert the
             // real final geometry, allowing bounded asynchronous convergence.
-            let deadline = ProcessInfo.processInfo.systemUptime + max(step.1, 7)
+            let deadline = ProcessInfo.processInfo.systemUptime + max(step.1, 10.5)
             func verify() {
                 let valid = step.3()
                 if valid || ProcessInfo.processInfo.systemUptime >= deadline {
+                    if !valid { print("DETAIL: \(m.status); frames=\(m.windows.compactMap { axFrame($0.element) })") }
                     check(valid,step.0); next()
                 } else { DispatchQueue.main.asyncAfter(deadline:.now()+0.2) { verify() } }
             }

@@ -126,9 +126,25 @@ rather than silently claiming their current size proves a hard minimum.
 
 For an unchanged mismatch, test responsiveness with a size-only probe up to
 32 points larger on that axis, capped at the display dimension. Read the probe
-after 50 ms, restore the requested size, and confirm after another 300 ms. Only
+after 350 ms, restore the requested size, and confirm after another 350 ms. Only
 an axis that actually moved during the probe may teach its unchanged starting
 size as a minimum. Cancel pending writes for new layouts, pause, Focus or an
 active mouse drag. A client that cannot respond within this interval, or is
 already as large as the display, may remain unresolved and must be reported;
 never label that ambiguity as a proven minimum.
+
+If a window still exceeds its requested tile after stable observations and
+responsiveness checks, fitting may try the next lower tile count without saving
+that ambiguous dimension as a minimum. Keep the user's configured maximum and
+layout choice. Unknown responses alone stop this fallback at two tiles; only
+confirmed constraints may force a single tile. Verify the final frames and report
+any remaining mismatch. A new Tidy/layout/discovery cycle retries the configured
+maximum so this temporary fallback cannot permanently lock the user to fewer tiles.
+
+For Auto, ambiguous height overflow first tries Columns and ambiguous width
+overflow first tries Rows. A response equal to the full display dimension can
+also trigger zero spacing, without persisting a minimum. Reject an alternate
+orientation that would collapse to one tile when the preferred plan still has
+multiple tiles. Explicit Grid/Rows/Columns retain their shape. These fallbacks
+share the same nine-pass budget and require stable samples; a window still
+animating does not trigger an alternative arrangement.

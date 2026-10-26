@@ -476,3 +476,38 @@ new per-app mismatch reporting identifies **ChatGPT**. This is partial progress,
 not proof of a working ChatGPT tile. Tiling was paused again. The user confirmed
 manual width reduction; manual height reduction is now being checked separately.
 The public issue and PR remain open/draft; the installed release is unchanged.
+
+### Cold-start and ambiguous-height follow-up
+
+A fresh installed launch exposed a remaining real mismatch: ChatGPT requested
+890×274 at (546,34), observed 890×600 at the same origin. The user confirmed that
+manual width reduction works but manual half-height reduction does not.
+
+Responsiveness probes now wait 350 ms before reading their result and another
+350 ms after restoring the requested size. Stable unresolved overflow can try a
+compatible Auto orientation, zero spacing for full-display constraints, and fewer
+tiles down to two, without saving ambiguous dimensions as minimums or changing
+preferences. Explicit layouts keep their shape. An alternate orientation cannot
+force one tile if the preferred plan still has multiple tiles. Animated responses
+cannot trigger this fallback. Pending explanations clear during a new fitting
+cycle, and remaining mismatches include requested/observed geometry.
+
+New fixture coverage includes an app already at its true minimum that ignores
+small height-growth probes, permanently ignored width writes, and Auto recovery
+to full-width rows. The initial count-fallback prototype interrupted animations;
+the existing delayed fixture caught it, and stable-sample gating corrected it.
+The full-height integration case required orientation/spacing trials rather than
+inventing a minimum from an unresponsive full-display-sized probe.
+
+Tests allow bounded asynchronous convergence: nine probe-bearing passes can take
+9.45 seconds, so the layout/Auto fallback assertions allow 10.5 seconds while
+checking actual outcomes. The close-window integration check waits two seconds
+instead of 0.8 because discovery may be deferred through a 1.05-second probe.
+Initial fixture-discovery and intermediate timing failures are not counted as
+passes. Native suites must run with the installed copy quit (not merely paused);
+isolated final results are recorded below.
+
+Final isolated run: 3,983 pure assertions, 18 integration checks, 21 layout-mode
+checks and all expanded delayed/retried/ambiguous/ignored-write native checks
+passed. Final optimized release compilation and staged signature verification
+passed. Local candidate version is 0.4.3, build 10 (not a public release).
