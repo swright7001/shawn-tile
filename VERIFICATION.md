@@ -63,5 +63,10 @@ Accessibility service, with different stored and installed ad hoc code hashes.
 This establishes a stale build-specific grant for this incident, rather than
 an absent Settings toggle. The installed binary was not rebuilt or replaced.
 Recovery instructions now explain removing the stale entry and explicitly
-re-adding the exact installed app. Permission refresh awaits user authorization;
-no grant or TCC database was modified during diagnosis.
+re-adding the exact installed app. During diagnosis no grant or TCC database was modified. After explicit user
+authorization and user-completed macOS authentication, the stale Settings entry
+was removed and the exact installed app was added again using System Settings.
+The app then showed six eligible windows, no permission warning, and an enabled
+Automatic tiling control. Automatic tiling was switched on and the native UI
+confirmed it running, reporting three app-imposed size constraints. The installed
+binary was not changed, and all other app permissions were left unchanged.
