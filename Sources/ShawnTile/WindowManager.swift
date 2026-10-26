@@ -194,8 +194,10 @@ final class WindowManager: ObservableObject {
         fitCheck?.cancel(); layoutGeneration += 1; fitPending = true
         let generation = layoutGeneration
         applying = true
-        var requests: [(ManagedWindow,CGRect,Bool)] = []
+        var requests: [(ManagedWindow,CGRect,Bool,CGSize?)] = []
         var firstSizes: [String:CGSize] = [:]
+        var retryFailures: Set<String> = []
+        var probeSizes: [String:CGSize] = [:]
         var tooLarge = 0, tileCount = 0, stacked = 0
         let active = activeID()
         let focused = active.flatMap { candidate in states.values.contains(where:{$0.slot(of:candidate) != nil}) ? candidate : nil } ?? lastActiveID
@@ -214,7 +216,8 @@ final class WindowManager: ObservableObject {
                 guard let window = members.first(where:{$0.id == id}) else { continue }
                 if originals[id] == nil { originals[id] = (window.element,window.frame) }
                 let target = plan.frames[slot]
-                requests.append((window,target,axSetFrame(window.element,target)))
+                let before = axFrame(window.element)?.size
+                requests.append((window,target,axSetFrame(window.element,target),before))
             } }
             // A window larger than the entire usable display cannot share a tile.
             // Leave its accepted size intact and center it, rather than repeatedly shrinking it.
@@ -235,13 +238,18 @@ final class WindowManager: ObservableObject {
             guard self.enabled, self.trusted, self.focusedID == nil else { return }
             guard NSEvent.pressedMouseButtons == 0 else { self.lastSignature = ""; self.schedule(); return }
             var learned = false, rejected = 0
-            for (window,target,written) in requests {
-                guard let actual = axFrame(window.element) else { rejected += 1; continue }
-                if !ResizeFeedback.matches(actual,target) || !written { rejected += 1 }
-                guard written, self.configuration(window.display).autoFit else { continue }
+            var rejectedApps: [String:Set<String>] = [:]
+            func reject(_ window: ManagedWindow) {
+                rejected += 1
+                rejectedApps[window.display,default:[]].insert(window.app.localizedName ?? "App")
+            }
+            for (window,target,written,before) in requests {
+                guard let actual = axFrame(window.element) else { reject(window); continue }
+                if !ResizeFeedback.matches(actual,target) || !written || retryFailures.contains(window.id) { reject(window) }
+                guard written, !retryFailures.contains(window.id), self.configuration(window.display).autoFit else { continue }
                 let prior = self.minimums[window.id] ?? .zero
                 let next = ResizeFeedback.minimum(prior:prior,target:target.size,
-                    first:firstSizes[window.id],confirmed:actual.size,written:written)
+                    first:firstSizes[window.id],confirmed:actual.size,written:written,before:before,probe:probeSizes[window.id])
                 if next != prior { self.minimums[window.id] = next; learned = true }
             }
             if learned && attempt < 8 { self.applyLayouts(attempt:attempt+1); return }
@@ -258,21 +266,60 @@ final class WindowManager: ObservableObject {
                     self.fittingDetails[display.id] = "Only \(count) of \(self.configuration(display.id).capacity) tiles fit the observed window sizes. Stacked windows overlap in the same tile. " +
                         (bounds.isEmpty ? "Some windows have not accepted their requested frames." : "Observed accepted sizes (? = unknown): " + bounds.joined(separator:"; "))
                 } else { self.fittingDetails[display.id] = nil }
+                if let names = rejectedApps[display.id], !names.isEmpty {
+                    let message = "Could not place: " + names.sorted().joined(separator:", ") + ". These apps did not accept their requested frames."
+                    self.fittingDetails[display.id] = [self.fittingDetails[display.id],message].compactMap{$0}.joined(separator:" ")
+                }
             }
             var parts = ["Tiling · \(tileCount) \(tileCount == 1 ? "tile" : "tiles")"]
             if stacked > 0 { parts.append("\(stacked) \(stacked == 1 ? "window shares a tile" : "windows share tiles")") }
             if tooLarge > 0 { parts.append("\(tooLarge) too large for display") }
-            if rejected > 0 { parts.append("\(rejected) windows did not reach their tiles") }
+            if rejected > 0 { parts.append("\(rejected) \(rejected == 1 ? "window did" : "windows did") not reach their tiles") }
             self.settledSizes = Dictionary(uniqueKeysWithValues:self.windows.compactMap { w in axFrame(w.element).map{(w.id,$0.size)} })
             self.status = parts.joined(separator:" · "); self.menuChanged?()
         }
         let sample = DispatchWorkItem { [weak self] in
             guard let self, self.layoutGeneration == generation else { return }
-            firstSizes = Dictionary(uniqueKeysWithValues:requests.compactMap { window,_,_ in
+            guard self.enabled, self.trusted, self.focusedID == nil, NSEvent.pressedMouseButtons == 0 else {
+                self.fitPending = false; self.lastSignature = ""; self.schedule(); return
+            }
+            firstSizes = Dictionary(uniqueKeysWithValues:requests.compactMap { window,_,_,_ in
                 axFrame(window.element).map { (window.id,$0.size) }
             })
-            self.fitCheck = check
-            DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
+            // Verify responsiveness before calling an unchanged dimension a
+            // minimum. Probe at most 32 points larger, within this display,
+            // then retry the original size without rewriting position.
+            var retry: [(ManagedWindow,CGRect)] = []
+            for (window,target,written,before) in requests {
+                guard written, let before, let observed = firstSizes[window.id],
+                      let area = self.displays.first(where:{$0.id == window.display})?.area else { continue }
+                let unchangedWidth = abs(observed.width-before.width) <= 4 && abs(observed.width-target.width) > 4
+                let unchangedHeight = abs(observed.height-before.height) <= 4 && abs(observed.height-target.height) > 4
+                guard unchangedWidth || unchangedHeight else { continue }
+                let probe = CGSize(width:unchangedWidth ? max(observed.width,min(area.width,observed.width+32)) : observed.width,
+                                   height:unchangedHeight ? max(observed.height,min(area.height,observed.height+32)) : observed.height)
+                if !axSetSize(window.element,probe) { retryFailures.insert(window.id) }
+                retry.append((window,target))
+            }
+            guard !retry.isEmpty else {
+                self.fitCheck = check
+                DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:check)
+                return
+            }
+            let restore = DispatchWorkItem { [weak self] in
+                guard let self, self.layoutGeneration == generation else { return }
+                guard self.enabled, self.trusted, self.focusedID == nil, NSEvent.pressedMouseButtons == 0 else {
+                    self.fitPending = false; self.lastSignature = ""; self.schedule(); return
+                }
+                for (window,target) in retry {
+                    probeSizes[window.id] = axFrame(window.element)?.size
+                    if !axSetSize(window.element,target.size) { retryFailures.insert(window.id) }
+                }
+                self.fitCheck = check
+                DispatchQueue.main.asyncAfter(deadline:.now()+0.3,execute:check)
+            }
+            self.fitCheck = restore
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.05,execute:restore)
         }
         fitCheck = sample
         DispatchQueue.main.asyncAfter(deadline:.now()+0.35,execute:sample)

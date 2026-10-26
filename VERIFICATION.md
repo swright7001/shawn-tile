@@ -443,3 +443,36 @@ ChatGPT case resolved**. Direct computer-use access to ChatGPT was denied by the
 host; no alternate UI automation was used to bypass that denial. Manual resizing
 is requested to distinguish an actual app minimum from ignored AX resize writes.
 The public issue stays open pending that compatibility investigation.
+
+## Follow-up after manual narrow-window confirmation — 2026-10-26
+
+Shawn confirmed that ChatGPT can be made narrower than half the display by hand.
+The earlier full-width accepted frame is not a verified width minimum.
+
+Added pre-request axis comparisons and a bounded size-only responsiveness probe
+(up to 32 points, within display dimensions), followed by one size-only retry.
+An unchanged/unresponsive axis cannot become a new inferred minimum. A responding
+probe permits learning genuine limits even when the window starts at its minimum.
+Pending probes/retries stop on pause, Focus, generation changes and mouse drags.
+
+- Pure checks: 3,983 assertions passed, including ignored width with accepted
+  height, correcting stale bounds, responsive genuine minima and planner shape.
+- Expanded native resize regression: delayed clients retain four tiles; clients
+  ignoring the first width write recover through retry; clients ignoring every
+  width write keep four planned tiles and report unmatched frames. All passed
+  in debug and final release builds.
+- Native layout modes: 21 checks passed.
+- Native integration: 18 checks passed. The initial unchanged-axis-only approach
+  failed two genuine-minimum checks and was corrected with responsiveness probes.
+  One subsequent run failed initial fixture discovery; a standalone rerun passed
+  all 18 checks without weakening assertions or changing its timeouts.
+- Final release build and staged ad-hoc signature verification passed.
+
+### Updated real desktop pilot
+
+The release candidate now reports three planned tiles (one shared), rather than
+one tile with three sharing windows. One window still fails frame verification;
+new per-app mismatch reporting identifies **ChatGPT**. This is partial progress,
+not proof of a working ChatGPT tile. Tiling was paused again. The user confirmed
+manual width reduction; manual height reduction is now being checked separately.
+The public issue and PR remain open/draft; the installed release is unchanged.

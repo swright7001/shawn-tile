@@ -16,7 +16,7 @@ func runResizeFeedbackChecksNative() {
         manager?.enabled = false; manager?.shutdown()
         if child.isRunning { child.terminate() }
         prefs.removePersistentDomain(forName:domain)
-        print("\(passed ? "PASS" : "FAIL"): delayed AX resize retains four Grid tiles; fixture PID only")
+        print("\(passed ? "PASS" : "FAIL"): delayed, retried and ignored AX resize checks; fixture PID only")
         exit(passed ? 0 : 1)
     }
     DispatchQueue.main.asyncAfter(deadline:.now()+2) {
@@ -29,12 +29,33 @@ func runResizeFeedbackChecksNative() {
             DispatchQueue.main.asyncAfter(deadline:.now()+6) {
                 let frames = m.windows.compactMap { axFrame($0.element) }
                 let expected = Geometry.frames(in:display.area,count:4,settings:m.configuration(display.id))
-                finish(m.effectiveTiles[display.id] == 4 && frames.count == 5 && frames.allSatisfy { actual in
+                guard m.effectiveTiles[display.id] == 4 && frames.count == 5 && frames.allSatisfy({ actual in
                     expected.contains { ResizeFeedback.matches(actual,$0) }
-                })
+                }) else { finish(false); return }
+                print("PASS: delayed resizing retains four tiles and reaches targets")
+                m.enabled = false
+                try? pipe.fileHandleForWriting.write(contentsOf:Data("retry\n".utf8))
+                DispatchQueue.main.asyncAfter(deadline:.now()+0.5) {
+                    m.tidy(); m.enabled = true
+                    DispatchQueue.main.asyncAfter(deadline:.now()+3) {
+                        let retried = m.windows.compactMap { axFrame($0.element) }
+                        guard m.effectiveTiles[display.id] == 4 && retried.count == 5 && retried.allSatisfy({ actual in
+                            expected.contains { ResizeFeedback.matches(actual,$0) }
+                        }) else { print("FAIL: resize-only retry"); finish(false); return }
+                        print("PASS: resize-only retry recovers ignored first width writes")
+                        m.enabled = false
+                        try? pipe.fileHandleForWriting.write(contentsOf:Data("ignored\n".utf8))
+                        DispatchQueue.main.asyncAfter(deadline:.now()+0.5) {
+                            m.tidy(); m.enabled = true
+                            DispatchQueue.main.asyncAfter(deadline:.now()+3) {
+                                finish(m.effectiveTiles[display.id] == 4 && m.status.contains("did not reach their tiles"))
+                            }
+                        }
+                    }
+                }
             }
         }
     }
-    DispatchQueue.main.asyncAfter(deadline:.now()+15) { finish(false) }
+    DispatchQueue.main.asyncAfter(deadline:.now()+22) { finish(false) }
     app.run()
 }

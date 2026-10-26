@@ -14,6 +14,13 @@ func axFrame(_ element: AXUIElement) -> CGRect? {
     guard AXValueGetValue(p as! AXValue, .cgPoint, &point), AXValueGetValue(s as! AXValue, .cgSize, &size) else { return nil }
     return CGRect(origin:point,size:size)
 }
+// A separate size-only write avoids reissuing position while a client processes
+// an acknowledged but ineffective combined frame change.
+@discardableResult func axSetSize(_ element: AXUIElement, _ requested: CGSize) -> Bool {
+    var size = requested
+    guard let value = AXValueCreate(.cgSize,&size) else { return false }
+    return AXUIElementSetAttributeValue(element,kAXSizeAttribute as CFString,value) == .success
+}
 @discardableResult func axSetFrame(_ element: AXUIElement, _ rect: CGRect) -> Bool {
     var point = rect.origin, size = rect.size
     guard let p = AXValueCreate(.cgPoint,&point), let s = AXValueCreate(.cgSize,&size) else { return false }

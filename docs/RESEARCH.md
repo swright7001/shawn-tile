@@ -83,3 +83,13 @@ An isolated native fixture animates AX resizing through intermediate dimensions.
 It failed against the original WindowManager and passed after stable-sample
 confirmation. This establishes a reproducible failure mechanism, not that all
 user-reported overlap has this cause. No external implementation was consulted.
+
+Follow-up: Shawn confirmed that ChatGPT can be resized manually to less than half
+his display's width while tiling is paused. The observed 1432-point width is
+therefore not a demonstrated hard minimum. The precise AX failure is still
+unconfirmed. Two identical samples cannot distinguish an ignored axis from a
+minimum; compare each axis with its pre-request value before learning it. A
+single size-only retry after an unchanged first sample avoids simultaneously
+rewriting position, without restarting an animation already making progress.
+Public Rectangle documentation was consulted for general minimum-size context
+(https://github.com/rxhanson/Rectangle); no implementation code was copied.

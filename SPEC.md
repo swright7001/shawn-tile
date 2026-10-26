@@ -112,3 +112,23 @@ app names plus observed bounds (unknown dimensions marked `?`). These are
 observations, not a guarantee of an app's absolute minimum. No titles/content
 are collected. Slow clients which stay unchanged through both samples can still
 require further investigation; the check does not prove every client has settled.
+
+### Ignored resize acknowledgement
+
+A stable axis that did not change from its pre-request value is not new evidence
+of a minimum. Do not promote it to a bound, even if AX returns success. A smaller
+pre-request dimension corrects an older inferred bound. After the first sample,
+retry size alone once if either requested axis remains unchanged and mismatched;
+do not retry a progressing resize. Failed retries cannot teach bounds. Keep
+mismatches visible even when all planned tiles remain available. Clients already
+at a genuine minimum may likewise produce no evidence; report the mismatch
+rather than silently claiming their current size proves a hard minimum.
+
+For an unchanged mismatch, test responsiveness with a size-only probe up to
+32 points larger on that axis, capped at the display dimension. Read the probe
+after 50 ms, restore the requested size, and confirm after another 300 ms. Only
+an axis that actually moved during the probe may teach its unchanged starting
+size as a minimum. Cancel pending writes for new layouts, pause, Focus or an
+active mouse drag. A client that cannot respond within this interval, or is
+already as large as the display, may remain unresolved and must be reported;
+never label that ambiguity as a proven minimum.

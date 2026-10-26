@@ -5,8 +5,14 @@ import TileCore
 
 final class DelayedFixtureWindow: NSWindow {
     var delaysResizing = false
+    var ignoredWidthRequests = 0
     private var resizeGeneration = 0
     override func setFrame(_ frameRect: NSRect, display flag: Bool) {
+        if ignoredWidthRequests > 0 && abs(frameRect.width-frame.width) > 4 {
+            ignoredWidthRequests -= 1
+            super.setFrame(NSRect(origin:frameRect.origin,size:NSSize(width:frame.width,height:frameRect.height)),display:flag)
+            return
+        }
         let size = frameRect.size
         guard delaysResizing, size != frame.size else { super.setFrame(frameRect,display:flag); return }
         resizeGeneration += 1
@@ -47,6 +53,13 @@ final class FixtureDelegate:NSObject,NSApplicationDelegate {
             DispatchQueue.main.async {
                 for command in text.split(separator:"\n") {
                     switch command {
+                    case "retry", "ignored":
+                        let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1440,height:870)
+                        for case let window as DelayedFixtureWindow in self.windows {
+                            window.delaysResizing = false; window.ignoredWidthRequests = 0
+                            window.setFrame(area,display:true)
+                            window.ignoredWidthRequests = command == "retry" ? 1 : 100
+                        }
                     case "delayed":
                         let area = NSScreen.main?.visibleFrame ?? NSRect(x:0,y:0,width:1440,height:870)
                         for window in self.windows {

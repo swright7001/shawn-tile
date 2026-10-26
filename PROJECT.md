@@ -217,3 +217,11 @@ correction after smaller accepted sizes, position/size mismatch reporting and
 visible per-app fitting explanations. Native animated fixtures reproduce the
 original defect and pass with the patch. Public-release and real ChatGPT pilot
 status remain separate from fixture verification; see VERIFICATION.md.
+
+Follow-up manual testing disproved the observed ChatGPT width as a hard minimum.
+Added per-axis responsiveness checks and bounded size-only retries. The native
+regressions preserve genuine minimum fitting while preventing ignored writes
+from teaching false bounds. The real desktop now retains three planned tiles,
+but ChatGPT remains unmatched; its manual height limit and AX compatibility are
+still under investigation. Do not mark issue #2 resolved or publish a release on
+the basis of planner tile counts alone.
